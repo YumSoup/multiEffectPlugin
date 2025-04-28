@@ -38,7 +38,7 @@
 /**
 */
 
-
+// StateStorage class template for thread-safe storage of state variables
 template <typename T>
 class StateStorage
 {
@@ -105,9 +105,25 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    
+    int getFftSize() const;
+
     juce::AudioProcessorValueTreeState treeState; //declare a treeState the processor should have
     
+    std::vector<float> SimpleGainSliderAudioProcessor::getLatestMagnitudesDb() const
+    {
+        const juce::ScopedLock lock(scopeLock); // Lock during read
+        return fftMagnitudesDb; // Return a copy of the member variable
+    }
+
+    bool isNextFFTBlockReady() const noexcept
+    {
+        return nextFFTBlockReady.load();
+    }
+
+    void resetNextFFTBlockReady() noexcept
+    {
+        nextFFTBlockReady.store(false);
+    }
 
 
 private:
@@ -123,19 +139,28 @@ private:
     juce::AudioBuffer<float> delayBuffer;
     int writePosition{ 0 };
     
-    //FFT
-	static constexpr int fftOrder = 10;     // Size of the FFT window
-	static constexpr int fftSize = 1 << fftOrder; // Calculate the size of the FFT - 2^10 = 1024
+    //=== Fast Fourier Transform === 
+    juce::dsp::FFT forwardFFT;
+    juce::dsp::WindowingFunction<float> window;
 
-	//juce::dsp::FFT forwardFFT;
-	juce::Image spectrogramImage;
+	std::vector<float> fftMagnitudesDb; // Stores magnitudes of FFT data in dB
+    juce::CriticalSection scopeLock;               // Protects fftMagnitudesDb access
+
+	static constexpr int fftOrder = 11;     // Size of the FFT window
+	static constexpr int fftSize = 1 << fftOrder; // Calculate the size of the FFT - 2^10 = 1024
+    const float minDb = -100.0f;
+    std::atomic<bool> nextFFTBlockReady{ false };        // Whether next FFT block is ready for processing     
 
 	std::array<float, fftSize> fifo;        // Contains incoming samples FIFO
-	std::array<float, fftSize * 2> fftData; // Stores results of FFT 
-	int fifoIndex = 0;                     // Count of samples in FIFO
-	bool nextFFTBlockReady = false;        // Whhether next FFT block is ready for processing       
+    int fifoIndex = 0;                     // Count of samples in FIFO
 
-    // Legacy buffer functions
+	std::array<float, fftSize * 2> fftData; // Stores results of FFT 
+      
+
+    void pushNextSampleIntoFifo(float sample);
+    void performFFTProcessing();
+
+    // ==== Legacy buffer functions ====
     void fillBuffer(juce::AudioBuffer<float>& buffer, int channel);
     void readFromDelayBuffer(juce::AudioBuffer<float>& buffer, int channel);
     void updateDelayBufferWritePosition(int bufferSize);

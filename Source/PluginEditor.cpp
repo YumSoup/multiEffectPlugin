@@ -8,12 +8,14 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include <juce_gui_extra/juce_gui_extra.h>
 
 
 //==============================================================================
 // Constructor: Caled when window is created
 SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (SimpleGainSliderAudioProcessor& p)
-    : AudioProcessorEditor (&p), audioProcessor (p)
+	: AudioProcessorEditor (&p), audioProcessor (p),
+	spectrumAnalyser(p) // Create spectrum analyser component
 {
     // Create slider attachments
 	jassert(audioProcessor.treeState.getParameter(GAIN_ID) != nullptr); 
@@ -24,9 +26,10 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
     delayTimeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, DELAY_TIME_ID, delayTimeSlider); 
 
 	addAndMakeVisible(header);
-	addAndMakeVisible(sidebar);
-	addAndMakeVisible(footer);
+	addAndMakeVisible(contentGain);
+	//addAndMakeVisible(footer);
 	addAndMakeVisible(contentDelay);
+	addAndMakeVisible(contentSpectrum);
 
 	delaySectionLabel.setText("Delay Settings", juce::dontSendNotification);
 	delaySectionLabel.setJustificationType(juce::Justification::centred);
@@ -34,50 +37,68 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	contentDelay.addAndMakeVisible(delaySectionLabel);
 
 	// === gainSlider Properties ===
+	contentGain.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 
+		// Slider settings
     gainSlider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
     gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 25);
 	gainSlider.setTextValueSuffix(" dB");
     gainSlider.setRange(-48.0f, 6.0f);
+	gainSlider.setTooltip("Adjusts the overall output volume of the plugin after delay effect is applied.");
+	gainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
 
+		// Label settings
 	gainLabel.setText("Out Gain", juce::dontSendNotification);
 	gainLabel.setJustificationType(juce::Justification::centred);
 	gainLabel.setFont(juce::Font(14.0f, juce::Font::bold));
-	gainLabel.setBorderSize(juce::BorderSize<int>(0, 0, -5, 0)); 
 	
-	sidebar.addAndMakeVisible(gainLabel);
-	sidebar.addAndMakeVisible(gainSlider);
+	contentGain.addAndMakeVisible(gainLabel);
+	contentGain.addAndMakeVisible(gainSlider);
 
-	// === delayFeedbackSlider Properties ===
+	// === DELAY FEEDBACK Properties ===
+	contentDelay.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 
+		// Slider settings
 	delayFeedbackSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
 	delayFeedbackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 25);
 	delayFeedbackSlider.setTextValueSuffix(" %");
 	delayFeedbackSlider.setRange(0.0f, 100.0f);
-	
+	delayFeedbackSlider.setTooltip("Controls the volume of audio fed back into the delay effect. Inrease to make the echoes repeat more and fade out slower.");
+	gainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
 
-	delayFeedbackLabel.setText("Feedback", juce::dontSendNotification);		// label settings
-	delayFeedbackLabel.attachToComponent(&delayFeedbackSlider, false);
+		// Label settings
+	delayFeedbackLabel.setText("Feedback", juce::dontSendNotification);	
 	delayFeedbackLabel.setJustificationType(juce::Justification::centred);
-	delayFeedbackLabel.setBorderSize(juce::BorderSize<int>(0, 0, -5, 0));
+	gainLabel.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
 
+
+	contentDelay.addAndMakeVisible(delayFeedbackLabel);	
 	contentDelay.addAndMakeVisible(delayFeedbackSlider);		
 
-	// === delayTimeSlider Properties ===
+	// === DELAY TIME Properties ===
 
+		//Slider settings
 	delayTimeSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
 	delayTimeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 25);
 	delayTimeSlider.setTextValueSuffix(" sec");
 	delayTimeSlider.setRange(0.0f, 2.0f);
+	delayTimeSlider.setTooltip("Controls the time between the original sound and its repetitions. Increase for faster echoes. Very small values and modulation can result in interesting effects.");
+	gainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
 
+		// Label settings
 	delayTimeLabel.setText("Time", juce::dontSendNotification);	// label settings
-	//delayTimeLabel.attachToComponent(&delayTimeSlider, false);
-	//delayTimeLabel.setJustificationType(juce::Justification::centred);
-	//delayTimeLabel.setBorderSize(juce::BorderSize<int>(0, 0, -5, 0));
+	delayTimeLabel.setJustificationType(juce::Justification::centred);
+	gainLabel.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
 
+	contentDelay.addAndMakeVisible(delayTimeLabel);
 	contentDelay.addAndMakeVisible(delayTimeSlider);
 
-    setSize(200, 400);
+	// === Spectrum Analyser properties ===
+	contentSpectrum.setColour(juce::GroupComponent::outlineColourId, juce::Colours::transparentBlack);
+	contentSpectrum.addAndMakeVisible(spectrumAnalyser);
+	spectrumAnalyser.setTooltip("Visualizes the frequency spectrum of the audio signal after all effects are applied.");
+
+    setSize(650, 400);
 }
 
 SimpleGainSliderAudioProcessorEditor::~SimpleGainSliderAudioProcessorEditor()
@@ -95,17 +116,23 @@ void SimpleGainSliderAudioProcessorEditor::paint (juce::Graphics& g)
 
 }
 
-void SimpleGainSliderAudioProcessorEditor::resized() 
+
+void SimpleGainSliderAudioProcessorEditor::resized()  //
 {
+	// Set bounds for header, footer, sidebar and contentDelay
 	auto area = getLocalBounds();
 	auto headerHeight = 40;
 	auto footerHeight = 30;
-	auto sidebarWidth = 70;
 	header.setBounds(area.removeFromTop(headerHeight));
-	footer.setBounds(area.removeFromBottom(footerHeight));
-	sidebar.setBounds(area.removeFromLeft(sidebarWidth));
-	contentDelay.setBounds(area.removeFromTop(area.getHeight() / 2));
-    
+	//footer.setBounds(area.removeFromBottom(footerHeight));
+
+	auto contentSpaceHeight = area.getHeight();
+	auto gainContentWidth = 70;
+
+	contentGain.setBounds(area.removeFromLeft(gainContentWidth));
+	contentDelay.setBounds(area.removeFromTop(contentSpaceHeight / 2));
+	contentSpectrum.setBounds(area);// Spectrum analyser takes remaining space
+     
 	// ==== GAIN UI ====
 
 	// Make flexbox layout
@@ -116,59 +143,49 @@ void SimpleGainSliderAudioProcessorEditor::resized()
 	const int gainLabelHeight = gainLabel.getFont().getHeight() + 10; // Fixed label height
 
 	sidebarFlex.items.addArray({
-		juce::FlexItem(gainSlider).withWidth(sidebar.getWidth()).withHeight(sidebar.getHeight() - gainLabelHeight - 10).withMargin({0, 0, 0, 0}), // Slider takes space + 5px bottom margin
-		juce::FlexItem(gainLabel).withHeight(gainLabelHeight).withWidth(sidebar.getWidth()) // Fixed label height
+		juce::FlexItem(gainSlider).withWidth(contentGain.getWidth()).withHeight(contentGain.getHeight() - gainLabelHeight - 10).withMargin({0, 0, 0, 0}), // Slider takes space + 5px bottom margin
+		juce::FlexItem(gainLabel).withHeight(gainLabelHeight).withWidth(contentGain.getWidth()) // Fixed label height
 		});
 
 	// Apply layout to sidebar
-	sidebarFlex.performLayout(sidebar.getLocalBounds().reduced(5));
+	sidebarFlex.performLayout(contentGain.getLocalBounds().reduced(5));
 
 	// ==== DELAY UI ====
 
     // Make grid layout
-    juce::Grid grid;
-	grid.alignItems = juce::Grid::AlignItems::center;
-	grid.justifyItems = juce::Grid::JustifyItems::center;
+    juce::Grid delayGrid;
+	delayGrid.alignItems = juce::Grid::AlignItems::stretch;
+	delayGrid.justifyItems = juce::Grid::JustifyItems::center;
 
-    grid.templateRows = {
+    delayGrid.templateRows = {
         juce::Grid::TrackInfo(juce::Grid::Fr(1)),  // Title row
-        juce::Grid::TrackInfo(juce::Grid::Fr(2))   // Sliders row
+		juce::Grid::TrackInfo(juce::Grid::Fr(1)),  // Label row
+        juce::Grid::TrackInfo(juce::Grid::Fr(4))   // Sliders row
     };
-    grid.templateColumns = {
-        juce::Grid::Fr(1),
-        juce::Grid::Fr(1)
+    delayGrid.templateColumns = {
+        juce::Grid::Fr(1),	// Feedback slider
+		juce::Grid::Fr(1)	// Time slider
     };
 
-    grid.items = {
+    delayGrid.items = {
         juce::GridItem(delaySectionLabel).withArea(1, 1, 1, 3),
-        juce::GridItem(delayFeedbackSlider).withMargin({0,0,20,0}),	// Top, Right, Bottom, Left	
-		juce::GridItem(delayTimeSlider).withMargin({0,0,20,0})	// Top, Right, Bottom, Left
+
+		juce::GridItem(delayFeedbackLabel).withArea(2, 1).withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
+	
+        juce::GridItem(delayFeedbackSlider)
+			.withArea(3, 1)
+			.withMargin({0,0,10,0}),
+
+		juce::GridItem(delayTimeLabel).withArea(2, 2).withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
+
+		juce::GridItem(delayTimeSlider)
+		.withArea(3, 2)	
+		.withMargin({0,0,10,0})	// Top, Right, Bottom, Left
     };
 	
-    grid.performLayout(contentDelay.getLocalBounds().reduced(5));
+    delayGrid.performLayout(contentDelay.getLocalBounds().reduced(5));
+
+	// ==== SPECTRUM UI ====
+	spectrumAnalyser.setBounds(contentSpectrum.getLocalBounds().reduced(5)); // Set bounds for spectrum analyser
 	
 }	
-
-
-//class KnobLabel : public juce::Label
-//{
-//public:
-//	KnobLabel(juce::Component& componentToAttachTo)
-//	{
-//		// Style the label
-//		setColour(juce::Label::textColourId, juce::Colours::white);
-//		setFont(juce::Font(14.0f, juce::Font::plain));
-//		setJustificationType(juce::Justification::centred);
-//		setBorderSize(juce::BorderSize<int>(0, 0, -5, 0));
-//
-//		// Attach to component and position below it
-//		attachToComponent(&componentToAttachTo, false);
-//	}
-//
-//	// Optional: Override to customize positioning
-//	void resized() override
-//	{
-//		Label::resized();
-//		setBounds(getBounds().withY(getAttachedComponent()->getBottom() + 5)); // 5px gap
-//	}
-//};

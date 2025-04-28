@@ -11,7 +11,8 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
-//#include <juce_core/juce_core.h>
+#include "SpectrumAnalyserComponent.h"
+#include <juce_gui_extra/juce_gui_extra.h>
 
 
 //==============================================================================
@@ -52,25 +53,34 @@ private:
     // access the processor object that created it.
     SimpleGainSliderAudioProcessor& audioProcessor;
 
+    juce::TooltipWindow tooltipWindow{ this, 700 };
+
+	// UI COMPONENTS
     juce::Slider gainSlider;
 	juce::Slider delayFeedbackSlider;
 	juce::Slider delayTimeSlider;
 
-	juce::GroupComponent header;
+	juce::Component header;
     juce::GroupComponent footer;
-    juce::GroupComponent sidebar;
+    juce::GroupComponent contentGain;
     juce::GroupComponent contentDelay;
+	juce::GroupComponent contentSpectrum;
+
+    SpectrumAnalyserComponent spectrumAnalyser;
+
 
     //LABELS
     juce::Label gainLabel;
-
     juce::Label delaySectionLabel;
     juce::Label delayFeedbackLabel;
-    KnobLabel delayTimeLabel{ delayTimeSlider };
+    juce::Label delayTimeLabel;
 	
 
+
+
 public:
-    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> gainSliderAttachment; //create smartpointer for a sliderAttatchments
+	// Slider attachments
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> gainSliderAttachment;
     std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> delayFeedbackAttachment;
     std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> delayTimeAttachment;
 

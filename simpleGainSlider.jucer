@@ -3,13 +3,17 @@
 <JUCERPROJECT id="go85BO" name="simpleGainSlider" projectType="audioplug" useAppConfig="0"
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="Y7GsHK" name="simpleGainSlider">
+    <FILE id="vRHif9" name="PluginProcessor.h" compile="0" resource="0"
+          file="Source/PluginProcessor.h"/>
     <GROUP id="{27DD81DA-06BA-24A4-58B5-C70488D1CBA1}" name="Source">
+      <FILE id="F6GdIj" name="SpectrumAnalyserComponent.h" compile="0" resource="0"
+            file="Source/SpectrumAnalyserComponent.h"/>
+      <FILE id="Mcr86G" name="SpectrumAnalyserComponent.cpp" compile="1"
+            resource="0" file="Source/SpectrumAnalyserComponent.cpp"/>
       <FILE id="dk7hhe" name="StateVariableFilter.h" compile="0" resource="0"
             file="Source/StateVariableFilter.h"/>
       <FILE id="ysqN9q" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
-      <FILE id="vRHif9" name="PluginProcessor.h" compile="0" resource="0"
-            file="Source/PluginProcessor.h"/>
       <FILE id="GRDvCO" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
       <FILE id="U0Wknc" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
@@ -25,6 +29,7 @@
     <MODULE id="juce_audio_utils" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_core" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_data_structures" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
+    <MODULE id="juce_dsp" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_events" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_graphics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
     <MODULE id="juce_gui_basics" showAllCode="1" useLocalCopy="0" useGlobalPath="1"/>
@@ -50,6 +55,7 @@
         <MODULEPATH id="juce_graphics" path="../../modules"/>
         <MODULEPATH id="juce_gui_basics" path="../../modules"/>
         <MODULEPATH id="juce_gui_extra" path="../../modules"/>
+        <MODULEPATH id="juce_dsp" path="../../modules"/>
       </MODULEPATHS>
     </VS2022>
   </EXPORTFORMATS>

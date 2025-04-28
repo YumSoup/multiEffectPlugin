@@ -24,10 +24,22 @@ SimpleGainSliderAudioProcessor::SimpleGainSliderAudioProcessor():
     
 
 #endif
-    //initialisation list
-    treeState(*this, nullptr, "PARAMETERS", createParameterLayout())  //construct treeState with  parameter list
 
-{  //processor construtor code:
+    // Initialisation list:
+    treeState(*this, nullptr, "PARAMETERS", createParameterLayout()),  //construct treeState with parameter list
+
+	forwardFFT(fftOrder),   // Init forwardFFT with size of window
+  
+	window(fftSize, juce::dsp::WindowingFunction<float>::hann) // Init window as Hann 
+
+
+{  // Processor construtor code:
+    
+    fftMagnitudesDb.resize(fftSize / 2);  // Set size of fftMagnitudesDb
+    std::fill(fftMagnitudesDb.begin(), fftMagnitudesDb.end(), minDb); // Set entire fftMagnitudesDb to dB floor
+
+    fifo.fill(0.0f);
+	fftData.fill(0.0f);
 
 }
 
@@ -145,7 +157,8 @@ bool SimpleGainSliderAudioProcessor::isBusesLayoutSupported (const BusesLayout& 
 }
 #endif
 
-// __________________________________PROCESS BLOCK__________________________________________________________________
+// __________________________________PROCESS BLOCK__________________________________________________________________________
+
 void SimpleGainSliderAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
@@ -163,22 +176,24 @@ void SimpleGainSliderAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
         delayBuffer.clear(i, 0, delayBufferSize);
     }
 	
+	// Set targets for smoothed values
     gainValueSmoothed.setTargetValue(gainSliderParameter);
-
-	delayFeedbackSmoothed.setTargetValue(delayFeedbackParameter / 100); // set target value for delay gain
-	delayTimeSmoothedChannels[0].setTargetValue(delayTimeParameter); // set target value for delay time
+	delayFeedbackSmoothed.setTargetValue(delayFeedbackParameter / 100); 
+	delayTimeSmoothedChannels[0].setTargetValue(delayTimeParameter); 
     delayTimeSmoothedChannels[1].setTargetValue(delayTimeParameter);
 
     // For EACH CHANNEL:
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
-		// Delay processing
         auto* channelData = buffer.getWritePointer(channel);
         auto* delayData = delayBuffer.getWritePointer(channel);
-        for (int sample = 0; sample < bufferSize; ++sample) { 	// iterate through every sample in buffer
+
+        // For EACH SAMPLE:
+        for (int sample = 0; sample < bufferSize; ++sample) { 	
+
+			// === DELAY PROCESSING ===
 			int sampleWritePosition = (writePosition + sample) % delayBufferSize;
             
-
 			// Read from delay buffer
             float delayTime = delayTimeSmoothedChannels[channel].getNextValue();
             double readPos = (writePosition + sample) - (delayTime * getSampleRate());
@@ -190,7 +205,7 @@ void SimpleGainSliderAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
 			int nextnextReadPos = (readPosInt + 2) % delayBufferSize;
 			int prevReadPos = (readPosInt - 1 + delayBufferSize) % delayBufferSize;
 
-			float frac = readPos - readPosInt; // fraction from readPos to nextReadPos
+			float frac = readPos - readPosInt; // Fraction from readPos to nextReadPos
 
             // Cubic interpolate
 			float delayedSample = cubicHermiteInterpolate(delayData[prevReadPos], delayData[readPosInt], delayData[nextReadPos], delayData[nextnextReadPos], frac);
@@ -200,18 +215,95 @@ void SimpleGainSliderAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
 
             // Mix delayedSample into output
             channelData[sample] += delayedSample;
+
+			// === GAIN PROCESSING ===
+            channelData[sample] = buffer.getSample(channel, sample) * (pow(10, gainValueSmoothed.getNextValue() / 20));     // Multiply by gain volume
+
+			// === FFT PROCESSING ===
+            if (channel == 0)
+            {
+                pushNextSampleIntoFifo(channelData[sample]);
+            }
+
 		}
 
-        //Gain function 
-		for (int sample = 0; sample < bufferSize; ++sample) {      // iterate through every sample in buffer
-            channelData[sample] = buffer.getSample(channel, sample) * (pow(10, gainValueSmoothed.getNextValue() / 20));     // multiply input stream by gain volume
-        }
     }
 
-	updateDelayBufferWritePosition(bufferSize); // Increment writePosition by amount of buffer copied to delayBuffer
+	updateDelayBufferWritePosition(bufferSize); // Increment delay line writePos by amount of buffer copied to delayBuffer
 } 
 // ____________________________________________END PROCESS BLOCK_________________________________________________________________
 
+// Puts sample into FIFO. If full, calls performFFTProcessing()
+void SimpleGainSliderAudioProcessor::pushNextSampleIntoFifo(float sample)
+{
+
+    if (fifoIndex == fftSize)  // Fifo is full
+    {
+         
+		if (!isNextFFTBlockReady()) // If UI has consumed the last block
+		{
+            performFFTProcessing();
+		}
+        fifoIndex = 0;
+    }
+
+    fifo[fifoIndex] = sample;  // Add sample to FIFO at index
+
+    // Increment index and wrap if needed (though linear buffer is simpler here)
+    fifoIndex++;
+}
+
+// Perform FFT processing on FIFO. Prepares fftMagnitudesDb for UI
+void SimpleGainSliderAudioProcessor::performFFTProcessing() {
+
+    // Apply windowing
+	window.multiplyWithWindowingTable(fifo.data(), fftSize); // Apply window to FIFO
+
+	// Copy windowed FIFO data into fftData
+    std::fill(fftData.begin(), fftData.end(), 0.0f);    
+    std::copy(fifo.begin(), fifo.end(), fftData.begin()); 
+
+	// Perform FFT on fftData
+	forwardFFT.performRealOnlyForwardTransform(fftData.data());
+
+	auto numFreqBins = fftSize / 2; 
+	std::vector<float> unlockedFftMagnitudesDb(numFreqBins);  // Hold FftMagnitudesDb before locking
+
+    // Get magnitudes and convert to dB
+
+	// For EACH FREQ BIN:
+    for (int freqBin = 0; freqBin < numFreqBins; ++freqBin)
+    {
+        float real = fftData[freqBin * 2];
+        float imag = fftData[freqBin * 2 + 1];
+        float magSquared = real * real + imag * imag;  //get magnitude^2 of freq bin
+
+        float dBValue;
+
+		//  Convert to dB
+
+        if (magSquared > 1e-10f) {
+            dBValue = 10.0f * std::log10(magSquared); 
+        }
+        else {
+            dBValue = minDb; // set to minDb if too small
+        }
+
+		unlockedFftMagnitudesDb[freqBin] = std::max(dBValue, minDb); // Store dB value
+    }
+
+	// Copy magnitudes to fftMagnitudesDb
+	{
+        const juce::ScopedLock lock(scopeLock); // Lock during copy
+        std::copy(unlockedFftMagnitudesDb.begin(), unlockedFftMagnitudesDb.end(), fftMagnitudesDb.begin());
+	}
+
+    nextFFTBlockReady.store(true); // New data is ready for UI
+
+}
+
+// fftSide get function
+int SimpleGainSliderAudioProcessor::getFftSize() const { return fftSize; }
 
 // Increment delay buffer write position by buffersize
 void SimpleGainSliderAudioProcessor::updateDelayBufferWritePosition(int bufferSize) {
@@ -264,18 +356,17 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleGainSliderAudioProcess
 
     //PARAMETER LIST - ID, name, min, max, default
 
-	auto gainParam = std::make_unique<juce::AudioParameterFloat>(GAIN_ID, GAIN_NAME, -48.0f, 0.0f, -1.0f); 
-	auto delayFeedbackParam = std::make_unique<juce::AudioParameterFloat>(DELAY_FEEDBACK_ID, DELAY_FEEDBACK_NAME, 0.0f, 100.0f, 50.f);
-	auto delayTimeParam = std::make_unique<juce::AudioParameterFloat>(DELAY_TIME_ID, DELAY_TIME_NAME, 0.0f, 2.0f, 0.6f);
+	auto gainParam = std::make_unique<juce::AudioParameterFloat>(GAIN_ID, GAIN_NAME, -48.0f, 6.0f, -1.0f); 
+	auto delayFeedbackParam = std::make_unique<juce::AudioParameterFloat>(DELAY_FEEDBACK_ID, DELAY_FEEDBACK_NAME, juce::NormalisableRange < float>(0.0f, 100.0f, 0.1f,1.7f),25.0f);
+	auto delayTimeParam = std::make_unique<juce::AudioParameterFloat>(DELAY_TIME_ID, DELAY_TIME_NAME, juce::NormalisableRange < float>(0.0f, 2.0f, 0.002f, 0.4f), 0.6f);
 
     //threshold: -50db min, +12db max, 1db step, 1 skew factor
 	auto threshParam = std::make_unique<juce::AudioParameterFloat>(THRESHOLD_ID, THRESHOLD_NAME, juce::NormalisableRange<float>(-60, 12, 1, 1 ), 0);
 	auto attackParam = std::make_unique<juce::AudioParameterFloat>(ATTACK_ID, ATTACK_NAME, attackReleaseRange, 50);
 	auto releaseParam = std::make_unique<juce::AudioParameterFloat>(RELEASE_ID, RELEASE_NAME, attackReleaseRange, 250);
 
-	auto ratioParam = std::make_unique<juce::AudioParameterChoice>(RATIO_ID, RATIO_NAME, ratioChoices, 3); // ratio choices
+	auto ratioParam = std::make_unique<juce::AudioParameterChoice>(RATIO_ID, RATIO_NAME, ratioChoices, 3);
 	
-
 
 	// Add parameters to container
     params.push_back(std::move(gainParam)); 
