@@ -123,6 +123,14 @@ void SimpleGainSliderAudioProcessor::prepareToPlay(double sampleRate, int sample
 	delayTimeSmoothedChannels[1].reset(sampleRate, 0.2f);
 	delayFeedbackSmoothed.reset(sampleRate, 0.05f);
 
+    // Compressor
+
+	juce::dsp::ProcessSpec spec;
+	spec.maximumBlockSize = samplesPerBlock; 
+	spec.sampleRate = sampleRate;
+	spec.numChannels = getTotalNumOutputChannels();
+	compressor.prepare(spec); 
+
 }
 
 void SimpleGainSliderAudioProcessor::releaseResources()
@@ -196,25 +204,31 @@ void SimpleGainSliderAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
             
 			// Read from delay buffer
             float delayTime = delayTimeSmoothedChannels[channel].getNextValue();
-            double readPos = (writePosition + sample) - (delayTime * getSampleRate());
-            if (readPos < 0) readPos += delayBufferSize;
+            if (delayTime > 0) {
+                double readPos = (writePosition + sample) - (delayTime * getSampleRate());
+                if (readPos < 0) readPos += delayBufferSize;
 
-            // Get read positions
-            int readPosInt = static_cast<int>(readPos);
-			int nextReadPos = (readPosInt + 1) % delayBufferSize;
-			int nextnextReadPos = (readPosInt + 2) % delayBufferSize;
-			int prevReadPos = (readPosInt - 1 + delayBufferSize) % delayBufferSize;
+                // Get read positions
+                int readPosInt = static_cast<int>(readPos);
+                int nextReadPos = (readPosInt + 1) % delayBufferSize;
+                int nextnextReadPos = (readPosInt + 2) % delayBufferSize;
+                int prevReadPos = (readPosInt - 1 + delayBufferSize) % delayBufferSize;
 
-			float frac = readPos - readPosInt; // Fraction from readPos to nextReadPos
+                float frac = readPos - readPosInt; // Fraction from readPos to nextReadPos
 
-            // Cubic interpolate
-			float delayedSample = cubicHermiteInterpolate(delayData[prevReadPos], delayData[readPosInt], delayData[nextReadPos], delayData[nextnextReadPos], frac);
+                // Cubic interpolate
+                float delayedSample = cubicHermiteInterpolate(delayData[prevReadPos], delayData[readPosInt], delayData[nextReadPos], delayData[nextnextReadPos], frac);
 
-			// Write dry + delayedSample to delay buffer
-            delayData[sampleWritePosition] = channelData[sample] + (delayedSample * delayFeedbackSmoothed.getNextValue());
+                // Write dry + delayedSample to delay buffer
+                delayData[sampleWritePosition] = channelData[sample] + (delayedSample * delayFeedbackSmoothed.getNextValue());
 
-            // Mix delayedSample into output
-            channelData[sample] += delayedSample;
+                // Mix delayedSample into output
+                channelData[sample] += delayedSample;
+            }
+			else {
+				// No delay, just write to delay buffer
+				delayData[sampleWritePosition] = channelData[sample];
+			}
 
 			// === GAIN PROCESSING ===
             channelData[sample] = buffer.getSample(channel, sample) * (pow(10, gainValueSmoothed.getNextValue() / 20));     // Multiply by gain volume
@@ -357,11 +371,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleGainSliderAudioProcess
     //PARAMETER LIST - ID, name, min, max, default
 
 	auto gainParam = std::make_unique<juce::AudioParameterFloat>(GAIN_ID, GAIN_NAME, -48.0f, 6.0f, -1.0f); 
-	auto delayFeedbackParam = std::make_unique<juce::AudioParameterFloat>(DELAY_FEEDBACK_ID, DELAY_FEEDBACK_NAME, juce::NormalisableRange < float>(0.0f, 100.0f, 0.1f,1.7f),25.0f);
-	auto delayTimeParam = std::make_unique<juce::AudioParameterFloat>(DELAY_TIME_ID, DELAY_TIME_NAME, juce::NormalisableRange < float>(0.0f, 2.0f, 0.002f, 0.4f), 0.6f);
 
-    //threshold: -50db min, +12db max, 1db step, 1 skew factor
-	auto threshParam = std::make_unique<juce::AudioParameterFloat>(THRESHOLD_ID, THRESHOLD_NAME, juce::NormalisableRange<float>(-60, 12, 1, 1 ), 0);
+	auto delayFeedbackParam = std::make_unique<juce::AudioParameterFloat>(DELAY_FEEDBACK_ID, DELAY_FEEDBACK_NAME, juce::NormalisableRange < float>(0.0f, 100.0f, 0.1f,1.7f),25.0f);
+	auto delayTimeParam = std::make_unique<juce::AudioParameterFloat>(DELAY_TIME_ID, DELAY_TIME_NAME, juce::NormalisableRange < float>(0.0f, 2.0f, 0.01f, 0.4f), 0.6f);
+
+    
+	auto threshParam = std::make_unique<juce::AudioParameterFloat>(THRESHOLD_ID, THRESHOLD_NAME, juce::NormalisableRange<float>(-60, 12, 1, 1 ), 0); //threshold: -50db min, +12db max, 1db step, 1 skew factor
 	auto attackParam = std::make_unique<juce::AudioParameterFloat>(ATTACK_ID, ATTACK_NAME, attackReleaseRange, 50);
 	auto releaseParam = std::make_unique<juce::AudioParameterFloat>(RELEASE_ID, RELEASE_NAME, attackReleaseRange, 250);
 

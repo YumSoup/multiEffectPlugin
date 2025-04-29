@@ -128,17 +128,22 @@ public:
 
 private:
 
-    float cubicHermiteInterpolate(float y0, float y1, float y2, float y3, float fractionalPosition);
+    
 	
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     juce::LinearSmoothedValue<float> gainValueSmoothed{ 0.0f };
+
+	// == = Delay ===
 	juce::LinearSmoothedValue<float> delayFeedbackSmoothed{ 0.0f };
     std::array<juce::LinearSmoothedValue<float>, 2> delayTimeSmoothedChannels;
-
     juce::AudioBuffer<float> delayBuffer;
     int writePosition{ 0 };
     
+	// == Compressor ===
+
+	juce::dsp::Compressor<float> compressor;
+
     //=== Fast Fourier Transform === 
     juce::dsp::FFT forwardFFT;
     juce::dsp::WindowingFunction<float> window;
@@ -154,16 +159,17 @@ private:
 	std::array<float, fftSize> fifo;        // Contains incoming samples FIFO
     int fifoIndex = 0;                     // Count of samples in FIFO
 
-	std::array<float, fftSize * 2> fftData; // Stores results of FFT 
-      
+	std::array<float, fftSize * 2> fftData; // Stores results of FFT
 
+    float cubicHermiteInterpolate(float y0, float y1, float y2, float y3, float fractionalPosition);
     void pushNextSampleIntoFifo(float sample);
     void performFFTProcessing();
+    void updateDelayBufferWritePosition(int bufferSize);
 
     // ==== Legacy buffer functions ====
     void fillBuffer(juce::AudioBuffer<float>& buffer, int channel);
     void readFromDelayBuffer(juce::AudioBuffer<float>& buffer, int channel);
-    void updateDelayBufferWritePosition(int bufferSize);
+    
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SimpleGainSliderAudioProcessor)
 };
