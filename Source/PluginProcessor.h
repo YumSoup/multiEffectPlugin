@@ -11,10 +11,12 @@
 #pragma once
 #include <JuceHeader.h>
 #include <juce_dsp/juce_dsp.h>
-#include "StateVariableFilter.h"
 
-#define GAIN_ID "gain"
-#define GAIN_NAME "Gain"
+#define INGAIN_ID "inGain"
+#define INGAIN_NAME "Input Gain"
+
+#define OUTGAIN_ID "outGain"
+#define OUTGAIN_NAME "Output Gain"
 
 #define DELAY_FEEDBACK_ID "delayGain"
 #define DELAY_FEEDBACK_NAME "Delay Gain"
@@ -65,7 +67,8 @@ private:
 
 
 
-class SimpleGainSliderAudioProcessor  : public juce::AudioProcessor
+class SimpleGainSliderAudioProcessor  : public juce::AudioProcessor,
+    public juce::AudioProcessorValueTreeState::Listener
 {
 public:
     //==============================================================================
@@ -125,16 +128,28 @@ public:
         nextFFTBlockReady.store(false);
     }
 
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
 
 private:
-
-    
-	
+	// == Parameters ==
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
-    juce::LinearSmoothedValue<float> gainValueSmoothed{ 0.0f };
+    juce::AudioParameterFloat* attackParamPtr{ nullptr };   //compressor
+    juce::AudioParameterFloat* releaseParamPtr{ nullptr };
+    juce::AudioParameterFloat* thresholdParamPtr{ nullptr };
+    juce::AudioParameterChoice* ratioParamPtr{ nullptr };
 
-	// == = Delay ===
+	juce::AudioParameterFloat* inGainParamPtr{ nullptr };   //gain
+	juce::AudioParameterFloat* outGainParamPtr{ nullptr };
+
+	juce::AudioParameterFloat* delayFeedbackParamPtr{ nullptr };    //delay
+	juce::AudioParameterFloat* delayTimeParamPtr{ nullptr };
+
+	// === Gain ===
+    juce::LinearSmoothedValue<float> inGainValueSmoothed{ 0.0f };
+    juce::LinearSmoothedValue<float> outGainValueSmoothed{ 0.0f };
+
+	// === Delay ===
 	juce::LinearSmoothedValue<float> delayFeedbackSmoothed{ 0.0f };
     std::array<juce::LinearSmoothedValue<float>, 2> delayTimeSmoothedChannels;
     juce::AudioBuffer<float> delayBuffer;
@@ -144,9 +159,13 @@ private:
 
 	juce::dsp::Compressor<float> compressor;
 
+
+
     //=== Fast Fourier Transform === 
     juce::dsp::FFT forwardFFT;
     juce::dsp::WindowingFunction<float> window;
+
+
 
 	std::vector<float> fftMagnitudesDb; // Stores magnitudes of FFT data in dB
     juce::CriticalSection scopeLock;               // Protects fftMagnitudesDb access

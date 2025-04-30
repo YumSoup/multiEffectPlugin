@@ -48,6 +48,8 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    
+
 private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
@@ -56,13 +58,15 @@ private:
     juce::TooltipWindow tooltipWindow{ this, 700 };
 
 	// UI COMPONENTS
-    juce::Slider gainSlider;
+    juce::Slider inGainSlider;
+	juce::Slider outGainSlider;
 	juce::Slider delayFeedbackSlider;
 	juce::Slider delayTimeSlider;
 
 	juce::Component header;
     juce::GroupComponent footer;
-    juce::GroupComponent contentGain;
+    juce::GroupComponent contentInGain;
+    juce::GroupComponent contentOutGain;
     juce::GroupComponent contentDelay;
 	juce::GroupComponent contentSpectrum;
 
@@ -70,17 +74,20 @@ private:
 
 
     //LABELS
-    juce::Label gainLabel;
+    juce::Label inGainLabel;
+	juce::Label outGainLabel;
     juce::Label delaySectionLabel;
     juce::Label delayFeedbackLabel;
     juce::Label delayTimeLabel;
 	
 
-
+    void configureGainSlider(juce::Slider& slider, const juce::String& tooltip);
 
 public:
 	// Slider attachments
-    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> gainSliderAttachment;
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> inGainSliderAttachment;
+	std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> outGainSliderAttachment;
+
     std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> delayFeedbackAttachment;
     std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> delayTimeAttachment;
 

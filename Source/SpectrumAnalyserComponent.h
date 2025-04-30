@@ -24,8 +24,8 @@ public:
     void paint(juce::Graphics& g) override;
     void resized() override;
 
-    const float minDb = -36.0f;
-    const float maxDb = 12.0f;
+    const float minDb = -96.0f;
+    const float maxDb = 6.0f;
     const float minFreq = 20.0f;
     
     

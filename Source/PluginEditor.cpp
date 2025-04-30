@@ -18,42 +18,44 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	spectrumAnalyser(p) // Create spectrum analyser component
 {
     // Create slider attachments
-	jassert(audioProcessor.treeState.getParameter(GAIN_ID) != nullptr); 
-    gainSliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, GAIN_ID , gainSlider); 
-	jassert(audioProcessor.treeState.getParameter(DELAY_FEEDBACK_ID) != nullptr); 
+	
+    inGainSliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, INGAIN_ID , inGainSlider); 
+	outGainSliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, OUTGAIN_ID, outGainSlider);
+
 	delayFeedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, DELAY_FEEDBACK_ID, delayFeedbackSlider);
-	jassert(audioProcessor.treeState.getParameter(DELAY_TIME_ID) != nullptr);
     delayTimeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, DELAY_TIME_ID, delayTimeSlider); 
 
 	addAndMakeVisible(header);
-	addAndMakeVisible(contentGain);
-	//addAndMakeVisible(footer);
+	addAndMakeVisible(contentInGain);
+	addAndMakeVisible(contentOutGain);
 	addAndMakeVisible(contentDelay);
 	addAndMakeVisible(contentSpectrum);
-
+	
 	delaySectionLabel.setText("Delay Settings", juce::dontSendNotification);
 	delaySectionLabel.setJustificationType(juce::Justification::centred);
 	delaySectionLabel.setFont(juce::Font(16.0f, juce::Font::bold));
 	contentDelay.addAndMakeVisible(delaySectionLabel);
 
 	// === gainSlider Properties ===
-	contentGain.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	contentInGain.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 
 		// Slider settings
-    gainSlider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
-    gainSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 25);
-	gainSlider.setTextValueSuffix(" dB");
-    gainSlider.setRange(-48.0f, 6.0f);
-	gainSlider.setTooltip("Adjusts the overall output volume of the plugin after delay effect is applied.");
-	gainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+	configureGainSlider(inGainSlider, "Adjusts the input gain before processing.");
+	configureGainSlider(outGainSlider, "Adjusts the overall output volume of the plugin after delay effect is applied.");
 
 		// Label settings
-	gainLabel.setText("Out Gain", juce::dontSendNotification);
-	gainLabel.setJustificationType(juce::Justification::centred);
-	gainLabel.setFont(juce::Font(14.0f, juce::Font::bold));
-	
-	contentGain.addAndMakeVisible(gainLabel);
-	contentGain.addAndMakeVisible(gainSlider);
+	inGainLabel.setText("In Gain", juce::dontSendNotification);
+	inGainLabel.setJustificationType(juce::Justification::centred);
+	inGainLabel.setFont(juce::Font(14.0f, juce::Font::bold));
+
+	outGainLabel.setText("Out Gain", juce::dontSendNotification);
+	outGainLabel.setJustificationType(juce::Justification::centred);
+	outGainLabel.setFont(juce::Font(14.0f, juce::Font::bold));
+
+	contentInGain.addAndMakeVisible(inGainLabel);
+	contentInGain.addAndMakeVisible(inGainSlider);
+	contentOutGain.addAndMakeVisible(outGainLabel);
+	contentOutGain.addAndMakeVisible(outGainSlider);
 
 	// === DELAY FEEDBACK Properties ===
 	contentDelay.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
@@ -64,12 +66,12 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	delayFeedbackSlider.setTextValueSuffix(" %");
 	delayFeedbackSlider.setRange(0.0f, 100.0f);
 	delayFeedbackSlider.setTooltip("Controls the volume of audio fed back into the delay effect. Inrease to make the echoes repeat more and fade out slower.");
-	gainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+	inGainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
 
 		// Label settings
 	delayFeedbackLabel.setText("Feedback", juce::dontSendNotification);	
 	delayFeedbackLabel.setJustificationType(juce::Justification::centred);
-	gainLabel.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
+	inGainLabel.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
 
 
 	contentDelay.addAndMakeVisible(delayFeedbackLabel);	
@@ -83,12 +85,12 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	delayTimeSlider.setTextValueSuffix(" sec");
 	delayTimeSlider.setRange(0.0f, 2.0f);
 	delayTimeSlider.setTooltip("Controls the time between the original sound and its repetitions. Increase for faster echoes. Very small values and modulation can result in interesting effects.");
-	gainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+	inGainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
 
 		// Label settings
 	delayTimeLabel.setText("Time", juce::dontSendNotification);	// label settings
 	delayTimeLabel.setJustificationType(juce::Justification::centred);
-	gainLabel.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
+	inGainLabel.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
 
 	contentDelay.addAndMakeVisible(delayTimeLabel);
 	contentDelay.addAndMakeVisible(delayTimeSlider);
@@ -98,7 +100,7 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	contentSpectrum.addAndMakeVisible(spectrumAnalyser);
 	spectrumAnalyser.setTooltip("Visualizes the frequency spectrum of the audio signal after all effects are applied.");
 
-    setSize(650, 400);
+    setSize(800, 400);
 }
 
 SimpleGainSliderAudioProcessorEditor::~SimpleGainSliderAudioProcessorEditor()
@@ -129,26 +131,42 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 	auto contentSpaceHeight = area.getHeight();
 	auto gainContentWidth = 70;
 
-	contentGain.setBounds(area.removeFromLeft(gainContentWidth));
+	contentInGain.setBounds(area.removeFromLeft(gainContentWidth));
+	contentOutGain.setBounds(area.removeFromRight(gainContentWidth));
 	contentDelay.setBounds(area.removeFromTop(contentSpaceHeight / 2));
 	contentSpectrum.setBounds(area);// Spectrum analyser takes remaining space
      
 	// ==== GAIN UI ====
 
-	// Make flexbox layout
-	juce::FlexBox sidebarFlex;
-	sidebarFlex.flexDirection = juce::FlexBox::Direction::column;  
-	sidebarFlex.justifyContent = juce::FlexBox::JustifyContent::flexStart; 
-	sidebarFlex.alignItems = juce::FlexBox::AlignItems::center;    
-	const int gainLabelHeight = gainLabel.getFont().getHeight() + 10; // Fixed label height
+	// Input gain
+	juce::FlexBox leftSidebarFlex;
+	leftSidebarFlex.flexDirection = juce::FlexBox::Direction::column;  
+	leftSidebarFlex.justifyContent = juce::FlexBox::JustifyContent::flexStart; 
+	leftSidebarFlex.alignItems = juce::FlexBox::AlignItems::center;    
+	const int gainLabelHeight = inGainLabel.getFont().getHeight() + 10; // Fixed label height
 
-	sidebarFlex.items.addArray({
-		juce::FlexItem(gainSlider).withWidth(contentGain.getWidth()).withHeight(contentGain.getHeight() - gainLabelHeight - 10).withMargin({0, 0, 0, 0}), // Slider takes space + 5px bottom margin
-		juce::FlexItem(gainLabel).withHeight(gainLabelHeight).withWidth(contentGain.getWidth()) // Fixed label height
+	leftSidebarFlex.items.addArray({
+		juce::FlexItem(inGainSlider).withWidth(contentInGain.getWidth()).withHeight(contentInGain.getHeight() - gainLabelHeight - 10).withMargin({0, 0, 0, 0}), // Slider takes space + 5px bottom margin
+		juce::FlexItem(inGainLabel).withHeight(gainLabelHeight).withWidth(contentInGain.getWidth()) // Fixed label height
 		});
 
 	// Apply layout to sidebar
-	sidebarFlex.performLayout(contentGain.getLocalBounds().reduced(5));
+	leftSidebarFlex.performLayout(contentInGain.getLocalBounds().reduced(5));
+
+	// Output gain
+	juce::FlexBox rightSidebarFlex;
+	rightSidebarFlex.flexDirection = juce::FlexBox::Direction::column;
+	rightSidebarFlex.justifyContent = juce::FlexBox::JustifyContent::flexStart;
+	rightSidebarFlex.alignItems = juce::FlexBox::AlignItems::center;
+
+	rightSidebarFlex.items.addArray({
+		juce::FlexItem(outGainSlider).withWidth(contentOutGain.getWidth()).withHeight(contentOutGain.getHeight() - gainLabelHeight - 10).withMargin({0, 0, 0, 0}), // Slider takes space + 5px bottom margin
+		juce::FlexItem(outGainLabel).withHeight(gainLabelHeight).withWidth(contentOutGain.getWidth()) // Fixed label height
+		});
+
+	// Apply layout to sidebar
+	rightSidebarFlex.performLayout(contentOutGain.getLocalBounds().reduced(5));
+
 
 	// ==== DELAY UI ====
 
@@ -189,3 +207,13 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 	spectrumAnalyser.setBounds(contentSpectrum.getLocalBounds().reduced(5)); // Set bounds for spectrum analyser
 	
 }	
+
+void SimpleGainSliderAudioProcessorEditor::configureGainSlider(juce::Slider& slider, const juce::String& tooltip)
+{
+	slider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
+	slider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 25);
+	slider.setTextValueSuffix(" dB");
+	slider.setRange(-48.0f, 24.0f);
+	slider.setTooltip(tooltip);
+	slider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+}

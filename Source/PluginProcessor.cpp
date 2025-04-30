@@ -1,10 +1,3 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
@@ -26,26 +19,46 @@ SimpleGainSliderAudioProcessor::SimpleGainSliderAudioProcessor():
 #endif
 
     // Initialisation list:
+
     treeState(*this, nullptr, "PARAMETERS", createParameterLayout()),  //construct treeState with parameter list
 
 	forwardFFT(fftOrder),   // Init forwardFFT with size of window
   
 	window(fftSize, juce::dsp::WindowingFunction<float>::hann) // Init window as Hann 
 
-
 {  // Processor construtor code:
     
     fftMagnitudesDb.resize(fftSize / 2);  // Set size of fftMagnitudesDb
     std::fill(fftMagnitudesDb.begin(), fftMagnitudesDb.end(), minDb); // Set entire fftMagnitudesDb to dB floor
-
     fifo.fill(0.0f);
 	fftData.fill(0.0f);
+
+	// Cast parameter pointers to their types
+    attackParamPtr = dynamic_cast<juce::AudioParameterFloat*>(treeState.getParameter(ATTACK_ID)); 
+    releaseParamPtr = dynamic_cast<juce::AudioParameterFloat*>(treeState.getParameter(RELEASE_ID));
+    thresholdParamPtr = dynamic_cast<juce::AudioParameterFloat*>(treeState.getParameter(THRESHOLD_ID));
+	ratioParamPtr = dynamic_cast<juce::AudioParameterChoice*>(treeState.getParameter(RATIO_ID));
+
+	inGainParamPtr = dynamic_cast<juce::AudioParameterFloat*>(treeState.getParameter(INGAIN_ID));
+    outGainParamPtr = dynamic_cast<juce::AudioParameterFloat*>(treeState.getParameter(OUTGAIN_ID));
+
+	delayFeedbackParamPtr = dynamic_cast<juce::AudioParameterFloat*>(treeState.getParameter(DELAY_FEEDBACK_ID)); 
+	delayTimeParamPtr = dynamic_cast<juce::AudioParameterFloat*>(treeState.getParameter(DELAY_TIME_ID)); 
+
+    treeState.addParameterListener(ATTACK_ID, this);
+    treeState.addParameterListener(RELEASE_ID, this);
+    treeState.addParameterListener(THRESHOLD_ID, this);
+    treeState.addParameterListener(RATIO_ID, this);
 
 }
 
 // Destructor
 SimpleGainSliderAudioProcessor::~SimpleGainSliderAudioProcessor()
 {
+    treeState.removeParameterListener(ATTACK_ID, this);
+    treeState.removeParameterListener(RELEASE_ID, this);
+    treeState.removeParameterListener(THRESHOLD_ID, this);
+    treeState.removeParameterListener(RATIO_ID, this);
 }
 
 //==============================================================================
@@ -117,7 +130,8 @@ void SimpleGainSliderAudioProcessor::prepareToPlay(double sampleRate, int sample
     delayBuffer.setSize(getNumOutputChannels(), (int)delayBufferSize);
 	delayBuffer.clear();
 
-	gainValueSmoothed.reset(sampleRate, 0.05f);
+	inGainValueSmoothed.reset(sampleRate, 0.05f);
+	outGainValueSmoothed.reset(sampleRate, 0.05f);
 
     delayTimeSmoothedChannels[0].reset(sampleRate, 0.2f);
 	delayTimeSmoothedChannels[1].reset(sampleRate, 0.2f);
@@ -130,6 +144,11 @@ void SimpleGainSliderAudioProcessor::prepareToPlay(double sampleRate, int sample
 	spec.sampleRate = sampleRate;
 	spec.numChannels = getTotalNumOutputChannels();
 	compressor.prepare(spec); 
+    compressor.reset();
+    compressor.setAttack(attackParamPtr->get());
+    compressor.setRelease(releaseParamPtr->get());
+    compressor.setThreshold(thresholdParamPtr->get());
+    compressor.setRatio(ratioParamPtr->getCurrentChoiceName().getFloatValue());
 
 }
 
@@ -174,10 +193,12 @@ void SimpleGainSliderAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     auto totalNumOutputChannels = getTotalNumOutputChannels();
     auto bufferSize = buffer.getNumSamples();
     auto delayBufferSize = delayBuffer.getNumSamples();
-    auto delayFeedbackParameter = treeState.getRawParameterValue(DELAY_FEEDBACK_ID)->load();
-    auto delayTimeParameter = treeState.getRawParameterValue(DELAY_TIME_ID)->load();
-	auto gainSliderParameter = treeState.getRawParameterValue(GAIN_ID)->load();
 
+	auto delayFeedbackParameter = delayFeedbackParamPtr->get(); 
+	auto delayTimeParameter = delayTimeParamPtr->get(); 
+    auto inGainSliderParameter = inGainParamPtr->get();
+	auto outGainSliderParameter = outGainParamPtr->get();
+	
     // Clear junk data in output channels
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i) {     
         buffer.clear(i, 0, bufferSize);
@@ -185,11 +206,16 @@ void SimpleGainSliderAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
     }
 	
 	// Set targets for smoothed values
-    gainValueSmoothed.setTargetValue(gainSliderParameter);
+    inGainValueSmoothed.setTargetValue(inGainSliderParameter);
+	outGainValueSmoothed.setTargetValue(outGainSliderParameter);
+
 	delayFeedbackSmoothed.setTargetValue(delayFeedbackParameter / 100); 
 	delayTimeSmoothedChannels[0].setTargetValue(delayTimeParameter); 
     delayTimeSmoothedChannels[1].setTargetValue(delayTimeParameter);
 
+
+    // === INGAIN AND DELAY PROCESSING ===
+  
     // For EACH CHANNEL:
     for (int channel = 0; channel < totalNumInputChannels; ++channel)
     {
@@ -199,53 +225,100 @@ void SimpleGainSliderAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
         // For EACH SAMPLE:
         for (int sample = 0; sample < bufferSize; ++sample) { 	
 
-			// === DELAY PROCESSING ===
-			int sampleWritePosition = (writePosition + sample) % delayBufferSize;
-            
-			// Read from delay buffer
-            float delayTime = delayTimeSmoothedChannels[channel].getNextValue();
-            if (delayTime > 0) {
-                double readPos = (writePosition + sample) - (delayTime * getSampleRate());
-                if (readPos < 0) readPos += delayBufferSize;
+            // IN Gain processing
+            channelData[sample] = buffer.getSample(channel, sample) * (pow(10, inGainValueSmoothed.getNextValue() / 20));     // Multiply by gain volume
+			
+			int sampleWritePosition = (writePosition + sample) % delayBufferSize;   // Get writepos for sample for this loop's sample
+			float delayTime = delayTimeSmoothedChannels[channel].getNextValue();    // Get delay time 
 
-                // Get read positions
-                int readPosInt = static_cast<int>(readPos);
-                int nextReadPos = (readPosInt + 1) % delayBufferSize;
-                int nextnextReadPos = (readPosInt + 2) % delayBufferSize;
-                int prevReadPos = (readPosInt - 1 + delayBufferSize) % delayBufferSize;
-
-                float frac = readPos - readPosInt; // Fraction from readPos to nextReadPos
-
-                // Cubic interpolate
-                float delayedSample = cubicHermiteInterpolate(delayData[prevReadPos], delayData[readPosInt], delayData[nextReadPos], delayData[nextnextReadPos], frac);
-
-                // Write dry + delayedSample to delay buffer
-                delayData[sampleWritePosition] = channelData[sample] + (delayedSample * delayFeedbackSmoothed.getNextValue());
-
-                // Mix delayedSample into output
-                channelData[sample] += delayedSample;
+			// No delay operation, write to delay buffer
+            if (delayTime <= 0) {
+                delayData[sampleWritePosition] = channelData[sample];
+                continue;
             }
-			else {
-				// No delay, just write to delay buffer
-				delayData[sampleWritePosition] = channelData[sample];
-			}
 
-			// === GAIN PROCESSING ===
-            channelData[sample] = buffer.getSample(channel, sample) * (pow(10, gainValueSmoothed.getNextValue() / 20));     // Multiply by gain volume
+			// Get main read position
+            double readPos = (writePosition + sample) - (delayTime * getSampleRate());
+            if (readPos < 0) readPos += delayBufferSize;
 
-			// === FFT PROCESSING ===
+            // Get positions for interpolation
+            int readPosInt = static_cast<int>(readPos);
+            int nextReadPos = (readPosInt + 1) % delayBufferSize;
+            int nextnextReadPos = (readPosInt + 2) % delayBufferSize;
+            int prevReadPos = (readPosInt - 1 + delayBufferSize) % delayBufferSize;
+
+            float frac = readPos - readPosInt; // Fraction from readPos to nextReadPos
+
+            // Cubic interpolate
+            float delayedSample = cubicHermiteInterpolate(delayData[prevReadPos], delayData[readPosInt], delayData[nextReadPos], delayData[nextnextReadPos], frac);
+
+            // Write dry + delayedSample to delay buffer
+            delayData[sampleWritePosition] = channelData[sample] + (delayedSample * delayFeedbackSmoothed.getNextValue());
+
+            // Mix delayedSample into output
+            channelData[sample] += delayedSample;
+		}
+    }
+    updateDelayBufferWritePosition(bufferSize); // Increment delay line writePos by amount of buffer copied to delayBuffer
+
+    // === COMPRESSOR PROCESSING === 
+
+    auto block = juce::dsp::AudioBlock<float>(buffer);
+    auto context = juce::dsp::ProcessContextReplacing<float>(block); // Create process context
+    compressor.process(context);
+
+
+
+	// === OUTGAIN AND FIFO PROCESSING ===
+
+    // For EACH CHANNEL:
+    for (int channel = 0; channel < totalNumInputChannels; ++channel)
+    {
+        auto* channelData = buffer.getWritePointer(channel);
+
+        // For EACH SAMPLE:
+        for (int sample = 0; sample < bufferSize; ++sample) {
+
+			// OUT Gain processing
+            channelData[sample] = buffer.getSample(channel, sample) * (pow(10, outGainValueSmoothed.getNextValue() / 20));     // Multiply by gain volume
+			
+            // FFT start process
             if (channel == 0)
             {
                 pushNextSampleIntoFifo(channelData[sample]);
             }
-
-		}
-
+            
+        }
     }
-
-	updateDelayBufferWritePosition(bufferSize); // Increment delay line writePos by amount of buffer copied to delayBuffer
 } 
 // ____________________________________________END PROCESS BLOCK_________________________________________________________________
+
+void SimpleGainSliderAudioProcessor::parameterChanged(const juce::String& parameterID, float newValue)
+{
+    if (parameterID == ATTACK_ID)
+    {
+        if (attackParamPtr)
+            compressor.setAttack(attackParamPtr->get());
+        
+    }
+    else if (parameterID == RELEASE_ID)
+    {
+        if (releaseParamPtr)
+            compressor.setRelease(releaseParamPtr->get());
+
+    }
+    else if (parameterID == THRESHOLD_ID)
+    {
+        if (thresholdParamPtr)
+            compressor.setThreshold(thresholdParamPtr->get());
+
+    }
+    else if (parameterID == RATIO_ID)
+    {
+        if (ratioParamPtr)
+            compressor.setRatio(ratioParamPtr->getCurrentChoiceName().getFloatValue());
+    }
+}
 
 // Puts sample into FIFO. If full, calls performFFTProcessing()
 void SimpleGainSliderAudioProcessor::pushNextSampleIntoFifo(float sample)
@@ -283,21 +356,26 @@ void SimpleGainSliderAudioProcessor::performFFTProcessing() {
 	auto numFreqBins = fftSize / 2; 
 	std::vector<float> unlockedFftMagnitudesDb(numFreqBins);  // Hold FftMagnitudesDb before locking
 
-    // Get magnitudes and convert to dB
+    // Calc normalisation factor
 
+    const float normalizationFactor = (float)fftSize / 2.0f;    // Average energy accross fft window, compensating for Hann Window power reduction. 
+    const float normalizationFactorSquared = normalizationFactor * normalizationFactor; // Square for dB conversion
+    DBG
+	("Normalisation factor: " << normalizationFactor); // Debugging
+    // Get magnitudes and convert to dB
 	// For EACH FREQ BIN:
     for (int freqBin = 0; freqBin < numFreqBins; ++freqBin)
     {
         float real = fftData[freqBin * 2];
         float imag = fftData[freqBin * 2 + 1];
-        float magSquared = real * real + imag * imag;  //get magnitude^2 of freq bin
-
-        float dBValue;
+        float magSquared = real * real + imag * imag;  // Get magnitude^2 of current freq bin
+		float normalisedMagSquared = magSquared / normalizationFactorSquared; // Normalise magnitude^2
+        
 
 		//  Convert to dB
-
+        float dBValue;
         if (magSquared > 1e-10f) {
-            dBValue = 10.0f * std::log10(magSquared); 
+            dBValue = 10.0f * std::log10(normalisedMagSquared);
         }
         else {
             dBValue = minDb; // set to minDb if too small
@@ -370,9 +448,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleGainSliderAudioProcess
 
     //PARAMETER LIST - ID, name, min, max, default
 
-	auto gainParam = std::make_unique<juce::AudioParameterFloat>(GAIN_ID, GAIN_NAME, -48.0f, 6.0f, -1.0f); 
-
-	auto delayFeedbackParam = std::make_unique<juce::AudioParameterFloat>(DELAY_FEEDBACK_ID, DELAY_FEEDBACK_NAME, juce::NormalisableRange < float>(0.0f, 100.0f, 0.1f,1.7f),25.0f);
+	auto inGainParam = std::make_unique<juce::AudioParameterFloat>(INGAIN_ID, INGAIN_NAME, -48.0f, 24.0f, -1.0f); 
+    auto outGainParam = std::make_unique<juce::AudioParameterFloat>(OUTGAIN_ID, OUTGAIN_NAME, -48.0f, 24.0f, -1.0f);
+	
+    auto delayFeedbackParam = std::make_unique<juce::AudioParameterFloat>(DELAY_FEEDBACK_ID, DELAY_FEEDBACK_NAME, juce::NormalisableRange < float>(0.0f, 100.0f, 0.1f,1.7f),25.0f);
 	auto delayTimeParam = std::make_unique<juce::AudioParameterFloat>(DELAY_TIME_ID, DELAY_TIME_NAME, juce::NormalisableRange < float>(0.0f, 2.0f, 0.01f, 0.4f), 0.6f);
 
     
@@ -384,9 +463,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleGainSliderAudioProcess
 	
 
 	// Add parameters to container
-    params.push_back(std::move(gainParam)); 
+    params.push_back(std::move(inGainParam)); 
+	params.push_back(std::move(outGainParam));
+
 	params.push_back(std::move(delayFeedbackParam));
 	params.push_back(std::move(delayTimeParam));
+
     params.push_back(std::move(threshParam));
 	params.push_back(std::move(attackParam));
 	params.push_back(std::move(releaseParam));

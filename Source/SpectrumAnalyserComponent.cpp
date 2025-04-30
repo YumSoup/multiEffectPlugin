@@ -186,6 +186,16 @@ void SpectrumAnalyserComponent::paint(juce::Graphics& g)
 
 	g.setColour(juce::Colours::white.withAlpha(0.3f));  // Colour for dB lines
 
+    // -72dB line
+    float y72 = bottom - height * juce::jmap(-72.0f, minDb, maxDb, 0.0f, 1.0f);
+    g.drawHorizontalLine(juce::roundToInt(y72), left, right);
+    g.drawText("-72", juce::roundToInt(left + 2), juce::roundToInt(y72 - labelFont.getHeight()), 20, labelFont.getHeight(), juce::Justification::topLeft, 1);
+
+    // -48dB line
+    float y48 = bottom - height * juce::jmap(-48.0f, minDb, maxDb, 0.0f, 1.0f);
+    g.drawHorizontalLine(juce::roundToInt(y48), left, right);
+    g.drawText("-48", juce::roundToInt(left + 2), juce::roundToInt(y48 - labelFont.getHeight()), 20, labelFont.getHeight(), juce::Justification::topLeft, 1);
+
     // -24dB line
     float y24 = bottom - height * juce::jmap(-24.0f, minDb, maxDb, 0.0f, 1.0f);
     g.drawHorizontalLine(juce::roundToInt(y24), left, right);
@@ -195,11 +205,6 @@ void SpectrumAnalyserComponent::paint(juce::Graphics& g)
     float y12 = bottom - height * juce::jmap(-12.0f, minDb, maxDb, 0.0f, 1.0f);
     g.drawHorizontalLine(juce::roundToInt(y12), left, right);
     g.drawText("-12", juce::roundToInt(left + 2), juce::roundToInt(y12 - labelFont.getHeight()), 20, labelFont.getHeight(), juce::Justification::topLeft, 1);
-
-    // -6dB line
-    float y6 = bottom - height * juce::jmap(-6.0f, minDb, maxDb, 0.0f, 1.0f);
-    g.drawHorizontalLine(juce::roundToInt(y6), left, right);
-    g.drawText("-6", juce::roundToInt(left + 2), juce::roundToInt(y6 - labelFont.getHeight()), 20, labelFont.getHeight(), juce::Justification::topLeft, 1);
 
     // 0dB line
     float y0 = bottom - height * juce::jmap(0.0f, minDb, maxDb, 0.0f, 1.0f);
