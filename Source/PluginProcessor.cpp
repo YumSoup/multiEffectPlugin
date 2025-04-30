@@ -443,7 +443,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout SimpleGainSliderAudioProcess
     std::vector <std::unique_ptr<juce::RangedAudioParameter>> params; //container
 
     auto attackReleaseRange = juce::NormalisableRange<float>(5, 500, 1, 1);
-	auto ratioChoices = juce::StringArray{ "1", "1.5", "2", "3", "4", "5", "10", "100"}; // ratio choices
+	auto ratioChoices = getRatioChoices();  
 
 
     //PARAMETER LIST - ID, name, min, max, default

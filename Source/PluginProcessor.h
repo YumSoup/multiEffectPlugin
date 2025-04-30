@@ -112,6 +112,12 @@ public:
 
     juce::AudioProcessorValueTreeState treeState; //declare a treeState the processor should have
     
+    static const juce::StringArray getRatioChoices() {
+        static const juce::StringArray choices{ "1", "1.5", "2", "3", "4", "5", "10", "100" };
+        return choices;
+    }
+
+    // Get FFT results
     std::vector<float> SimpleGainSliderAudioProcessor::getLatestMagnitudesDb() const
     {
         const juce::ScopedLock lock(scopeLock); // Lock during read

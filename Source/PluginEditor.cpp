@@ -8,7 +8,6 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include <juce_gui_extra/juce_gui_extra.h>
 
 
 //==============================================================================
@@ -17,6 +16,7 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	: AudioProcessorEditor (&p), audioProcessor (p),
 	spectrumAnalyser(p) // Create spectrum analyser component
 {
+
     // Create slider attachments
 	
     inGainSliderAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, INGAIN_ID , inGainSlider); 
@@ -25,31 +25,46 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	delayFeedbackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, DELAY_FEEDBACK_ID, delayFeedbackSlider);
     delayTimeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, DELAY_TIME_ID, delayTimeSlider); 
 
+	compressorAttackAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, ATTACK_ID, attackSlider);
+	compressorReleaseAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, RELEASE_ID, releaseSlider);
+	
+	compressorThresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, THRESHOLD_ID, thresholdSlider);
+	compressorRatioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, RATIO_ID, ratioSlider);
+
+
 	addAndMakeVisible(header);
 	addAndMakeVisible(contentInGain);
 	addAndMakeVisible(contentOutGain);
 	addAndMakeVisible(contentDelay);
 	addAndMakeVisible(contentSpectrum);
+	addAndMakeVisible(contentCompressor);
 	
-	delaySectionLabel.setText("Delay Settings", juce::dontSendNotification);
-	delaySectionLabel.setJustificationType(juce::Justification::centred);
-	delaySectionLabel.setFont(juce::Font(16.0f, juce::Font::bold));
-	contentDelay.addAndMakeVisible(delaySectionLabel);
+	// Set outline colours
+	contentInGain.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	contentOutGain.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	contentDelay.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	contentCompressor.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+
+	inGainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	outGainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	delayFeedbackSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	delayTimeSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	attackSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	releaseSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	thresholdSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	ratioSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 
 	// === gainSlider Properties ===
-	contentInGain.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
-
+	
 		// Slider settings
 	configureGainSlider(inGainSlider, "Adjusts the input gain before processing.");
 	configureGainSlider(outGainSlider, "Adjusts the overall output volume of the plugin after delay effect is applied.");
 
 		// Label settings
-	inGainLabel.setText("In Gain", juce::dontSendNotification);
-	inGainLabel.setJustificationType(juce::Justification::centred);
+	configureKnobLabel(inGainLabel, "In Gain");
 	inGainLabel.setFont(juce::Font(14.0f, juce::Font::bold));
 
-	outGainLabel.setText("Out Gain", juce::dontSendNotification);
-	outGainLabel.setJustificationType(juce::Justification::centred);
+	configureKnobLabel(outGainLabel, "Out Gain");
 	outGainLabel.setFont(juce::Font(14.0f, juce::Font::bold));
 
 	contentInGain.addAndMakeVisible(inGainLabel);
@@ -58,21 +73,21 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	contentOutGain.addAndMakeVisible(outGainSlider);
 
 	// === DELAY FEEDBACK Properties ===
-	contentDelay.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+
+		// Delay section settings
+	configureKnobLabel(delaySectionLabel, "Delay Settings");
+	delaySectionLabel.setFont(juce::Font(16.0f, juce::Font::bold));
+	contentDelay.addAndMakeVisible(delaySectionLabel);
 
 		// Slider settings
 	delayFeedbackSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
-	delayFeedbackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 25);
+	delayFeedbackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
 	delayFeedbackSlider.setTextValueSuffix(" %");
 	delayFeedbackSlider.setRange(0.0f, 100.0f);
 	delayFeedbackSlider.setTooltip("Controls the volume of audio fed back into the delay effect. Inrease to make the echoes repeat more and fade out slower.");
-	inGainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-
+	
 		// Label settings
-	delayFeedbackLabel.setText("Feedback", juce::dontSendNotification);	
-	delayFeedbackLabel.setJustificationType(juce::Justification::centred);
-	inGainLabel.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
-
+	configureKnobLabel(delayFeedbackLabel, "Feedback"); 
 
 	contentDelay.addAndMakeVisible(delayFeedbackLabel);	
 	contentDelay.addAndMakeVisible(delayFeedbackSlider);		
@@ -81,19 +96,86 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 
 		//Slider settings
 	delayTimeSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
-	delayTimeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 100, 25);
+	delayTimeSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
 	delayTimeSlider.setTextValueSuffix(" sec");
 	delayTimeSlider.setRange(0.0f, 2.0f);
 	delayTimeSlider.setTooltip("Controls the time between the original sound and its repetitions. Increase for faster echoes. Very small values and modulation can result in interesting effects.");
-	inGainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-
+	
 		// Label settings
-	delayTimeLabel.setText("Time", juce::dontSendNotification);	// label settings
-	delayTimeLabel.setJustificationType(juce::Justification::centred);
-	inGainLabel.setColour(juce::Label::outlineColourId, juce::Colours::transparentBlack);
+	configureKnobLabel(delayTimeLabel, "Delay Time");
 
 	contentDelay.addAndMakeVisible(delayTimeLabel);
 	contentDelay.addAndMakeVisible(delayTimeSlider);
+
+	// === Compressor Properties ===
+	
+		// Compressor section settings
+	configureKnobLabel(compressorSectionLabel, "Compressor Settings");
+	compressorSectionLabel.setFont(juce::Font(16.0f, juce::Font::bold));
+	contentCompressor.addAndMakeVisible(compressorSectionLabel);
+
+	//  --- Ratio ---
+	const auto& ratioChoices = SimpleGainSliderAudioProcessor::getRatioChoices();
+
+	ratioSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
+	ratioSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 80, 25);
+	ratioSlider.setRange(0.0, ratioChoices.size() - 1.0, 1.0);
+	ratioSlider.setTextValueSuffix(":1");
+
+	// Slider text value
+	ratioSlider.textFromValueFunction = [ratioChoices](double sliderValue) -> juce::String
+		{	
+			int index = static_cast<int>(std::round(sliderValue)); // sliderValue as index
+			// Ensure index is within bounds of the choices we got
+			index = juce::jlimit(0, ratioChoices.size() - 1, index);
+			return ratioChoices[index];
+		};
+
+	configureKnobLabel(ratioLabel, "Ratio");
+
+	// -- Threshold --
+
+	thresholdSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
+	thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
+	thresholdSlider.setTextValueSuffix(" dB");
+	thresholdSlider.setRange(-60.0f, 12.0f);
+
+	configureKnobLabel(thresholdLabel, "Threshold");
+
+	// -- Attack --
+
+	attackSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
+	attackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
+	attackSlider.setTextValueSuffix(" ms");
+	attackSlider.setRange(5.0f, 500.0f);
+
+	configureKnobLabel(attackLabel, "Attack");
+
+	// -- Release --
+
+	releaseSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
+	releaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
+	releaseSlider.setTextValueSuffix(" ms");
+	releaseSlider.setRange(5.0f, 500.0f);
+
+	configureKnobLabel(releaseLabel, "Release");
+
+
+	contentCompressor.addAndMakeVisible(compressorSectionLabel);
+
+	contentCompressor.addAndMakeVisible(ratioSlider);
+	contentCompressor.addAndMakeVisible(ratioLabel);
+
+	contentCompressor.addAndMakeVisible(thresholdSlider);
+	contentCompressor.addAndMakeVisible(thresholdLabel);
+
+	contentCompressor.addAndMakeVisible(attackSlider);
+	contentCompressor.addAndMakeVisible(attackLabel);
+
+	contentCompressor.addAndMakeVisible(releaseSlider);
+	contentCompressor.addAndMakeVisible(releaseLabel);
+
+
 
 	// === Spectrum Analyser properties ===
 	contentSpectrum.setColour(juce::GroupComponent::outlineColourId, juce::Colours::transparentBlack);
@@ -126,16 +208,20 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 	auto headerHeight = 40;
 	auto footerHeight = 30;
 	header.setBounds(area.removeFromTop(headerHeight));
-	//footer.setBounds(area.removeFromBottom(footerHeight));
 
-	auto contentSpaceHeight = area.getHeight();
 	auto gainContentWidth = 70;
 
 	contentInGain.setBounds(area.removeFromLeft(gainContentWidth));
 	contentOutGain.setBounds(area.removeFromRight(gainContentWidth));
-	contentDelay.setBounds(area.removeFromTop(contentSpaceHeight / 2));
-	contentSpectrum.setBounds(area);// Spectrum analyser takes remaining space
-     
+
+	auto contentSpaceWidth = area.getWidth();
+	auto contentSpaceHeight = area.getHeight();
+
+	contentSpectrum.setBounds(area.removeFromBottom(contentSpaceHeight/2));
+	contentDelay.setBounds(area.removeFromLeft(contentSpaceWidth / 2));
+	contentCompressor.setBounds(area);
+	
+	
 	// ==== GAIN UI ====
 
 	// Input gain
@@ -205,7 +291,50 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 
 	// ==== SPECTRUM UI ====
 	spectrumAnalyser.setBounds(contentSpectrum.getLocalBounds().reduced(5)); // Set bounds for spectrum analyser
-	
+
+	// ==== COMPRESSOR UI ====
+
+		// Make grid layout
+	juce::Grid compGrid;
+	compGrid.alignItems = juce::Grid::AlignItems::stretch;
+	compGrid.justifyItems = juce::Grid::JustifyItems::center;
+
+	compGrid.templateRows = {
+		juce::Grid::TrackInfo(juce::Grid::Fr(2)),  // Title row
+		juce::Grid::TrackInfo(juce::Grid::Fr(4)),  // Ratio | Attack row
+		juce::Grid::TrackInfo(juce::Grid::Fr(4))   // Threshhold | Release row
+	};
+
+	compGrid.templateColumns = {
+		juce::Grid::Fr(1),	// Ratio and threshold labels
+		juce::Grid::Fr(1),	// Ratio and threshold knobs
+
+		juce::Grid::Fr(1),	// Attack and release labels
+		juce::Grid::Fr(1),	// Attack and release knobs
+	};
+
+	compGrid.items = {
+		juce::GridItem(compressorSectionLabel).withArea(1, 1, 1, 4), // Title row
+		juce::GridItem(ratioLabel).withArea(2, 1).withMargin({0,-5,10,0}),	// Top, Right, Bottom, Left
+		juce::GridItem(ratioSlider)
+			.withArea(2, 2)
+			.withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
+		juce::GridItem(thresholdLabel).withArea(3, 1).withMargin({0,-5,10,0}),	// Top, Right, Bottom, Left	
+		juce::GridItem(thresholdSlider)
+			.withArea(3, 2)
+			.withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
+		juce::GridItem(attackLabel).withArea(2, 4).withMargin({0,0,10,-5}),	// Top, Right, Bottom, Left
+		juce::GridItem(attackSlider)
+			.withArea(2, 3)
+			.withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
+		juce::GridItem(releaseLabel).withArea(3, 4).withMargin({0,0,10,-5}),	// Top, Right, Bottom, Left
+		juce::GridItem(releaseSlider)
+			.withArea(3, 3)
+			.withMargin({0,0,10,0})	// Top, Right, Bottom, Left
+	};
+
+	compGrid.performLayout(contentCompressor.getLocalBounds().reduced(5)); // Set bounds for compressor grid
+
 }	
 
 void SimpleGainSliderAudioProcessorEditor::configureGainSlider(juce::Slider& slider, const juce::String& tooltip)

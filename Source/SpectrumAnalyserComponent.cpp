@@ -14,7 +14,6 @@ SpectrumAnalyserComponent::SpectrumAnalyserComponent(SimpleGainSliderAudioProces
 
     std::fill(fftSmoothedData.begin(), fftSmoothedData.end(), minDb);
 
-
     startTimerHz(30);
 }
 
