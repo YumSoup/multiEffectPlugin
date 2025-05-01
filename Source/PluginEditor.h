@@ -38,7 +38,7 @@ public:
 
  
 // inherits component class
-class SimpleGainSliderAudioProcessorEditor  : public juce::AudioProcessorEditor
+class SimpleGainSliderAudioProcessorEditor : public juce::AudioProcessorEditor, public juce::Label::Listener
 {
 public:
     SimpleGainSliderAudioProcessorEditor (SimpleGainSliderAudioProcessor&);
@@ -98,6 +98,7 @@ private:
     juce::Label attackValueLabel;
     juce::Label releaseValueLabel;
 	
+    void labelTextChanged(juce::Label* labelChanged) override;
 
     void configureGainSlider(juce::Slider& slider, const juce::String& tooltip);
 
@@ -105,6 +106,7 @@ private:
 	{
 		label.setText(text, juce::dontSendNotification);
 		label.setJustificationType(juce::Justification::centred);
+        label.setFont(juce::Font(13.0f, juce::Font::bold));
 	}
 
 public:

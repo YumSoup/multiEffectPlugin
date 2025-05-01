@@ -8,7 +8,7 @@
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-
+#include <regex>
 
 //==============================================================================
 // Constructor: Caled when window is created
@@ -118,62 +118,89 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	const auto& ratioChoices = SimpleGainSliderAudioProcessor::getRatioChoices();
 
 	ratioSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
-	ratioSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 80, 25);
+	ratioSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 	ratioSlider.setRange(0.0, ratioChoices.size() - 1.0, 1.0);
-	ratioSlider.setTextValueSuffix(":1");
 
-	// Slider text value
-	ratioSlider.textFromValueFunction = [ratioChoices](double sliderValue) -> juce::String
-		{	
-			int index = static_cast<int>(std::round(sliderValue)); // sliderValue as index
-			// Ensure index is within bounds of the choices we got
+	// Labels
+	configureKnobLabel(ratioLabel, "Ratio");
+
+	ratioValueLabel.setJustificationType(juce::Justification::centred);
+	ratioSlider.onValueChange = [this, ratioChoices]() // Capture needed variables (this for label, ratioChoices)
+		{
+			int index = static_cast<int>(std::round(ratioSlider.getValue()));	// In case of fp error
+
+			// Ensure in range
 			index = juce::jlimit(0, ratioChoices.size() - 1, index);
-			return ratioChoices[index];
+
+			juce::String choiceText = ratioChoices[index];
+
+			// Add to value label
+			ratioValueLabel.setText(choiceText + ":1", juce::dontSendNotification);
 		};
 
-	configureKnobLabel(ratioLabel, "Ratio");
 
 	// -- Threshold --
 
 	thresholdSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
-	thresholdSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-	thresholdSlider.setTextValueSuffix(" dB");
+	thresholdSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 	thresholdSlider.setRange(-60.0f, 12.0f);
 
 	configureKnobLabel(thresholdLabel, "Threshold");
+	thresholdValueLabel.setEditable(false, true, false);
+	thresholdValueLabel.addListener(this);
+	thresholdSlider.onValueChange = [this]()
+		{
+			juce::String thresholdText = juce::String(thresholdSlider.getValue(), 1);
+			thresholdValueLabel.setText(thresholdText + " dB", juce::dontSendNotification);
+		};
 
 	// -- Attack --
 
 	attackSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
-	attackSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-	attackSlider.setTextValueSuffix(" ms");
+	attackSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 	attackSlider.setRange(5.0f, 500.0f);
 
 	configureKnobLabel(attackLabel, "Attack");
+	attackValueLabel.setEditable(false, true, false);
+	attackValueLabel.addListener(this);
+	attackSlider.onValueChange = [this]()
+		{
+			juce::String attackText = juce::String(attackSlider.getValue(), 1);
+			attackValueLabel.setText(attackText + " ms", juce::dontSendNotification);
+		};
 
 	// -- Release --
 
 	releaseSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
-	releaseSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 80, 25);
-	releaseSlider.setTextValueSuffix(" ms");
+	releaseSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 	releaseSlider.setRange(5.0f, 500.0f);
 
 	configureKnobLabel(releaseLabel, "Release");
-
+	releaseValueLabel.setEditable(false, true, false);
+	releaseValueLabel.addListener(this);
+	releaseSlider.onValueChange = [this]()
+		{
+			juce::String releaseText = juce::String(releaseSlider.getValue(), 1);
+			releaseValueLabel.setText(releaseText + " ms", juce::dontSendNotification);
+		};
 
 	contentCompressor.addAndMakeVisible(compressorSectionLabel);
 
 	contentCompressor.addAndMakeVisible(ratioSlider);
 	contentCompressor.addAndMakeVisible(ratioLabel);
+	contentCompressor.addAndMakeVisible(ratioValueLabel);
 
 	contentCompressor.addAndMakeVisible(thresholdSlider);
 	contentCompressor.addAndMakeVisible(thresholdLabel);
+	contentCompressor.addAndMakeVisible(thresholdValueLabel);
 
 	contentCompressor.addAndMakeVisible(attackSlider);
 	contentCompressor.addAndMakeVisible(attackLabel);
+	contentCompressor.addAndMakeVisible(attackValueLabel);
 
 	contentCompressor.addAndMakeVisible(releaseSlider);
 	contentCompressor.addAndMakeVisible(releaseLabel);
+	contentCompressor.addAndMakeVisible(releaseValueLabel);
 
 
 
@@ -294,48 +321,126 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 
 	// ==== COMPRESSOR UI ====
 
+	// Set initial value display
+	ratioSlider.onValueChange();
+	thresholdSlider.onValueChange();
+	attackSlider.onValueChange();
+	releaseSlider.onValueChange();
+
 		// Make grid layout
 	juce::Grid compGrid;
-	compGrid.alignItems = juce::Grid::AlignItems::stretch;
+	compGrid.alignItems = juce::Grid::AlignItems::center;
 	compGrid.justifyItems = juce::Grid::JustifyItems::center;
 
 	compGrid.templateRows = {
-		juce::Grid::TrackInfo(juce::Grid::Fr(2)),  // Title row
-		juce::Grid::TrackInfo(juce::Grid::Fr(4)),  // Ratio | Attack row
-		juce::Grid::TrackInfo(juce::Grid::Fr(4))   // Threshhold | Release row
+		juce::Grid::TrackInfo(juce::Grid::Fr(1)),  // Title row
+		juce::Grid::TrackInfo(juce::Grid::Fr(2)),  // Ratio | Attack row
+		juce::Grid::TrackInfo(juce::Grid::Fr(2)),  // Ratio Val | Attack Val row
+		juce::Grid::TrackInfo(juce::Grid::Fr(2)),   // Threshhold | Release row
+		juce::Grid::TrackInfo(juce::Grid::Fr(2))   // Threshhold Val | Release Val row
 	};
 
 	compGrid.templateColumns = {
-		juce::Grid::Fr(1),	// Ratio and threshold labels
-		juce::Grid::Fr(1),	// Ratio and threshold knobs
+		juce::Grid::Fr(2),	// Ratio and threshold labels
+		juce::Grid::Fr(3),	// Ratio and threshold knobs
 
-		juce::Grid::Fr(1),	// Attack and release labels
-		juce::Grid::Fr(1),	// Attack and release knobs
+		juce::Grid::Fr(3),	// Attack and release knobs
+		juce::Grid::Fr(2),	// Attack and release knobs
 	};
 
 	compGrid.items = {
-		juce::GridItem(compressorSectionLabel).withArea(1, 1, 1, 4), // Title row
-		juce::GridItem(ratioLabel).withArea(2, 1).withMargin({0,-5,10,0}),	// Top, Right, Bottom, Left
-		juce::GridItem(ratioSlider)
-			.withArea(2, 2)
-			.withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
-		juce::GridItem(thresholdLabel).withArea(3, 1).withMargin({0,-5,10,0}),	// Top, Right, Bottom, Left	
-		juce::GridItem(thresholdSlider)
-			.withArea(3, 2)
-			.withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
-		juce::GridItem(attackLabel).withArea(2, 4).withMargin({0,0,10,-5}),	// Top, Right, Bottom, Left
-		juce::GridItem(attackSlider)
-			.withArea(2, 3)
-			.withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
-		juce::GridItem(releaseLabel).withArea(3, 4).withMargin({0,0,10,-5}),	// Top, Right, Bottom, Left
-		juce::GridItem(releaseSlider)
-			.withArea(3, 3)
-			.withMargin({0,0,10,0})	// Top, Right, Bottom, Left
+		juce::GridItem(compressorSectionLabel).withArea(1, 1, 1, 5),
+
+		// --- Left Side ---
+		juce::GridItem(ratioLabel).withArea(2, 1), // Row 2, Col 1
+		juce::GridItem(ratioValueLabel).withArea(3, 1).withMargin({ - 10, 0, 0, 0 }), // Row 3, Col 1
+		juce::GridItem(ratioSlider).withArea(2,2,4,2), // Rows 2-3, Col 2
+
+		juce::GridItem(thresholdLabel).withArea(4, 1), // Row 4, Col 1
+		juce::GridItem(thresholdValueLabel).withArea(5, 1).withMargin({ -10, 0, 0, 0 }), // Row 5, Col 1
+		juce::GridItem(thresholdSlider).withArea(4, 2, 6, 2), // Rows 4-5, Col 2
+
+		// --- Right Side ---
+		juce::GridItem(attackLabel).withArea(2, 4), // Row 2, Col 4
+		juce::GridItem(attackValueLabel).withArea(3, 4).withMargin({ -10, 0, 0, 0 }), // Row 3, Col 4
+		juce::GridItem(attackSlider).withArea(2, 3, 4, 3), // Rows 2-3, Col 3
+
+		juce::GridItem(releaseLabel).withArea(4, 4), // Row 4, Col 4
+		juce::GridItem(releaseValueLabel).withArea(5, 4).withMargin({ -10, 0, 0, 0 }), // Row 5, Col 4
+		juce::GridItem(releaseSlider).withArea(4, 3, 6, 3)  // Rows 4-5, Col 3
 	};
 
-	compGrid.performLayout(contentCompressor.getLocalBounds().reduced(5)); // Set bounds for compressor grid
 
+	compGrid.performLayout(contentCompressor.getLocalBounds().reduced(5)); // Set bounds for compressor grid
 }	
+
+void SimpleGainSliderAudioProcessorEditor::labelTextChanged(juce::Label* labelChanged)
+{
+	// Find label edited
+	juce::String paramID = ""; 
+	juce::Slider* correspondingSlider = nullptr; 
+
+	if (labelChanged == &thresholdValueLabel)
+	{
+		paramID = THRESHOLD_ID;
+		correspondingSlider = &thresholdSlider;
+	}
+	else if (labelChanged == &attackValueLabel)
+	{
+		paramID = ATTACK_ID;
+		correspondingSlider = &attackSlider;
+	}
+	else if (labelChanged == &releaseValueLabel)
+	{
+		paramID = RELEASE_ID;
+		correspondingSlider = &releaseSlider;
+	}
+	else
+	{
+		return;
+	}
+
+	// --- Get the parameter and the entered text ---
+	auto* parameterBase = audioProcessor.treeState.getParameter(paramID);
+	juce::String newText = labelChanged->getText(); // Raw user input
+
+	auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(parameterBase);
+		
+	// Remove units
+	juce::String parsedText = newText.removeCharacters(" dBms");
+
+	static const std::regex pattern("^-?\\d+(\\.\\d*)?$");
+
+	if (std::regex_match(parsedText.toStdString(), pattern))
+	{
+		// Check if in value range
+		auto range = floatParam->getNormalisableRange(); // Get the parameter's valid range
+		auto parsedValue = parsedText.getFloatValue();
+
+		if (range.getRange().contains(parsedValue))
+		{
+			*floatParam = parsedValue; // Update the parameter
+		}
+		else
+		{
+			// Value entered is out of range
+			if (correspondingSlider != nullptr)
+			{
+				correspondingSlider->onValueChange(); // Reset val label
+			}
+		}
+	}
+
+	else
+	{
+		// Value entered is out of range
+		if (correspondingSlider != nullptr)
+		{
+			correspondingSlider->onValueChange(); // Reset val label
+		}
+	}
+
+}
 
 void SimpleGainSliderAudioProcessorEditor::configureGainSlider(juce::Slider& slider, const juce::String& tooltip)
 {

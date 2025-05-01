@@ -360,8 +360,7 @@ void SimpleGainSliderAudioProcessor::performFFTProcessing() {
 
     const float normalizationFactor = (float)fftSize / 2.0f;    // Average energy accross fft window, compensating for Hann Window power reduction. 
     const float normalizationFactorSquared = normalizationFactor * normalizationFactor; // Square for dB conversion
-    DBG
-	("Normalisation factor: " << normalizationFactor); // Debugging
+
     // Get magnitudes and convert to dB
 	// For EACH FREQ BIN:
     for (int freqBin = 0; freqBin < numFreqBins; ++freqBin)
