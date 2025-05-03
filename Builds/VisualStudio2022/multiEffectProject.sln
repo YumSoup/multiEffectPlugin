@@ -2,20 +2,20 @@
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio Version 17
 
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "simpleGainSlider - Standalone Plugin", "simpleGainSlider_StandalonePlugin.vcxproj", "{6D3D0FC6-C7E6-1A32-754E-15FAE6FBDC06}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multiEffectProject - Standalone Plugin", "multiEffectProject_StandalonePlugin.vcxproj", "{6D3D0FC6-C7E6-1A32-754E-15FAE6FBDC06}"
 	ProjectSection(ProjectDependencies) = postProject
 		{1AC5A08A-2B9E-73B5-98EE-D08B296BBFAF} = {1AC5A08A-2B9E-73B5-98EE-D08B296BBFAF}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "simpleGainSlider - VST3", "simpleGainSlider_VST3.vcxproj", "{66D0CF47-C0D0-2841-A5F8-92414D3257DD}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multiEffectProject - VST3", "multiEffectProject_VST3.vcxproj", "{66D0CF47-C0D0-2841-A5F8-92414D3257DD}"
 	ProjectSection(ProjectDependencies) = postProject
 		{1AC5A08A-2B9E-73B5-98EE-D08B296BBFAF} = {1AC5A08A-2B9E-73B5-98EE-D08B296BBFAF}
 		{873BDBAE-A7B0-69A0-5DAE-B7EFDEE2160E} = {873BDBAE-A7B0-69A0-5DAE-B7EFDEE2160E}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "simpleGainSlider - Shared Code", "simpleGainSlider_SharedCode.vcxproj", "{1AC5A08A-2B9E-73B5-98EE-D08B296BBFAF}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multiEffectProject - Shared Code", "multiEffectProject_SharedCode.vcxproj", "{1AC5A08A-2B9E-73B5-98EE-D08B296BBFAF}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "simpleGainSlider - VST3 Manifest Helper", "simpleGainSlider_VST3ManifestHelper.vcxproj", "{873BDBAE-A7B0-69A0-5DAE-B7EFDEE2160E}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "multiEffectProject - VST3 Manifest Helper", "multiEffectProject_VST3ManifestHelper.vcxproj", "{873BDBAE-A7B0-69A0-5DAE-B7EFDEE2160E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

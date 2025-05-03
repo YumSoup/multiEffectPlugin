@@ -12,31 +12,12 @@
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
 #include "SpectrumAnalyserComponent.h"
-#include <juce_gui_extra/juce_gui_extra.h>
 
 
 //==============================================================================
 /**
 */
 
-class KnobLabel : public juce::Label
-{
-public:
-    KnobLabel(juce::Component& componentToAttachTo)
-    {
-        // Style the label
-        setColour(juce::Label::textColourId, juce::Colours::white);
-        setFont(juce::Font(14.0f, juce::Font::plain));
-        setJustificationType(juce::Justification::centred);
-        setBorderSize(juce::BorderSize<int>(0, 0, -5, 0));
-
-        // Attach to component and position below it
-        attachToComponent(&componentToAttachTo, false);
-    }
-};
-
-
- 
 // inherits component class
 class SimpleGainSliderAudioProcessorEditor : public juce::AudioProcessorEditor, public juce::Label::Listener
 {
@@ -68,7 +49,7 @@ private:
     juce::Slider ratioSlider;
 	juce::Slider thresholdSlider;
 
-	juce::Component header;
+	juce::GroupComponent header;
     juce::GroupComponent footer;
     juce::GroupComponent contentInGain;
     juce::GroupComponent contentOutGain;
@@ -80,6 +61,9 @@ private:
 
 
     //LABELS
+	juce::Label headerLabel1;
+	juce::Label headerLabel2;
+
     juce::Label inGainLabel;
 	juce::Label outGainLabel;
 

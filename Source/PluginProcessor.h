@@ -177,7 +177,7 @@ private:
     juce::CriticalSection scopeLock;               // Protects fftMagnitudesDb access
 
 	static constexpr int fftOrder = 11;     // Size of the FFT window
-	static constexpr int fftSize = 1 << fftOrder; // Calculate the size of the FFT - 2^10 = 1024
+	static constexpr int fftSize = 1 << fftOrder; // Calculate the size of the FFT - 2^11
     const float minDb = -100.0f;
     std::atomic<bool> nextFFTBlockReady{ false };        // Whether next FFT block is ready for processing     
 

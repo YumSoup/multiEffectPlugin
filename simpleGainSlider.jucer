@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<JUCERPROJECT id="go85BO" name="simpleGainSlider" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
-  <MAINGROUP id="Y7GsHK" name="simpleGainSlider">
+<JUCERPROJECT id="go85BO" name="multiEffectProject" projectType="audioplug"
+              useAppConfig="0" addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1"
+              pluginManufacturer="ZK" pluginName="multiEffectPlugin">
+  <MAINGROUP id="Y7GsHK" name="multiEffectProject">
     <FILE id="vRHif9" name="PluginProcessor.h" compile="0" resource="0"
           file="Source/PluginProcessor.h"/>
     <GROUP id="{27DD81DA-06BA-24A4-58B5-C70488D1CBA1}" name="Source">
@@ -39,8 +40,8 @@
   <EXPORTFORMATS>
     <VS2022 targetFolder="Builds/VisualStudio2022">
       <CONFIGURATIONS>
-        <CONFIGURATION isDebug="1" name="Debug" targetName="simpleGainSlider"/>
-        <CONFIGURATION isDebug="0" name="Release" targetName="simpleGainSlider"/>
+        <CONFIGURATION isDebug="1" name="Debug" targetName="multiEffectPlugin"/>
+        <CONFIGURATION isDebug="0" name="Release" targetName="multiEffectPlugin"/>
       </CONFIGURATIONS>
       <MODULEPATHS>
         <MODULEPATH id="juce_audio_basics" path="../../modules"/>

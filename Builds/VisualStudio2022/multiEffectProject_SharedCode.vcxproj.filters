@@ -2,11 +2,11 @@
 
 <Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="simpleGainSlider\Source">
-      <UniqueIdentifier>{EE734F66-8E4B-9EAD-62B4-7CA18C81910A}</UniqueIdentifier>
+    <Filter Include="multiEffectProject\Source">
+      <UniqueIdentifier>{D6798283-B627-D8F1-8942-9F4AA424D028}</UniqueIdentifier>
     </Filter>
-    <Filter Include="simpleGainSlider">
-      <UniqueIdentifier>{7857FCD9-A1BE-1335-A4FB-8244165A2ACF}</UniqueIdentifier>
+    <Filter Include="multiEffectProject">
+      <UniqueIdentifier>{E09CA2CA-0C66-116F-CF4D-C72056D76DD4}</UniqueIdentifier>
     </Filter>
     <Filter Include="JUCE Modules\juce_audio_basics\audio_play_head">
       <UniqueIdentifier>{EB58F05A-A968-CEBE-40C4-107CDD8F240F}</UniqueIdentifier>
@@ -695,13 +695,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\Source\SpectrumAnalyserComponent.cpp">
-      <Filter>simpleGainSlider\Source</Filter>
+      <Filter>multiEffectProject\Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\PluginProcessor.cpp">
-      <Filter>simpleGainSlider\Source</Filter>
+      <Filter>multiEffectProject\Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\Source\PluginEditor.cpp">
-      <Filter>simpleGainSlider\Source</Filter>
+      <Filter>multiEffectProject\Source</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.cpp">
       <Filter>JUCE Modules\juce_audio_basics\audio_play_head</Filter>
@@ -3658,16 +3658,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Source\PluginProcessor.h">
-      <Filter>simpleGainSlider</Filter>
+      <Filter>multiEffectProject</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\SpectrumAnalyserComponent.h">
-      <Filter>simpleGainSlider\Source</Filter>
+      <Filter>multiEffectProject\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\StateVariableFilter.h">
-      <Filter>simpleGainSlider\Source</Filter>
+      <Filter>multiEffectProject\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\PluginEditor.h">
-      <Filter>simpleGainSlider\Source</Filter>
+      <Filter>multiEffectProject\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\modules\juce_audio_basics\audio_play_head\juce_AudioPlayHead.h">
       <Filter>JUCE Modules\juce_audio_basics\audio_play_head</Filter>

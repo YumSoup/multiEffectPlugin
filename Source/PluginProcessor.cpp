@@ -124,9 +124,9 @@ void SimpleGainSliderAudioProcessor::changeProgramName (int index, const juce::S
 }
 //==============================================================================
 
-void SimpleGainSliderAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)  //in case  of change in sample rate or buffer size
+void SimpleGainSliderAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)  // In case  of change in sample rate or buffer size
 {
-    auto delayBufferSize = sampleRate * 2.5; //delay buffer is 2 seconds of sample time
+    auto delayBufferSize = sampleRate * 2.5; // Delay buffer is 2.5 seconds of sample time
     delayBuffer.setSize(getNumOutputChannels(), (int)delayBufferSize);
 	delayBuffer.clear();
 
@@ -226,7 +226,7 @@ void SimpleGainSliderAudioProcessor::processBlock (juce::AudioBuffer<float>& buf
         for (int sample = 0; sample < bufferSize; ++sample) { 	
 
             // IN Gain processing
-            channelData[sample] = buffer.getSample(channel, sample) * (pow(10, inGainValueSmoothed.getNextValue() / 20));     // Multiply by gain volume
+            channelData[sample] = buffer.getSample(channel, sample) * (pow(10, inGainValueSmoothed.getNextValue() / 20));     // Multiply sample by gain volume
 			
 			int sampleWritePosition = (writePosition + sample) % delayBufferSize;   // Get writepos for sample for this loop's sample
 			float delayTime = delayTimeSmoothedChannels[channel].getNextValue();    // Get delay time 
@@ -323,7 +323,6 @@ void SimpleGainSliderAudioProcessor::parameterChanged(const juce::String& parame
 // Puts sample into FIFO. If full, calls performFFTProcessing()
 void SimpleGainSliderAudioProcessor::pushNextSampleIntoFifo(float sample)
 {
-
     if (fifoIndex == fftSize)  // Fifo is full
     {
          
@@ -336,7 +335,7 @@ void SimpleGainSliderAudioProcessor::pushNextSampleIntoFifo(float sample)
 
     fifo[fifoIndex] = sample;  // Add sample to FIFO at index
 
-    // Increment index and wrap if needed (though linear buffer is simpler here)
+    // Increment index
     fifoIndex++;
 }
 
@@ -358,7 +357,7 @@ void SimpleGainSliderAudioProcessor::performFFTProcessing() {
 
     // Calc normalisation factor
 
-    const float normalizationFactor = (float)fftSize / 2.0f;    // Average energy accross fft window, compensating for Hann Window power reduction. 
+    const float normalizationFactor = (float)fftSize / 4.0f;    // Average energy accross fft window, compensating for Hann Window power reduction. 
     const float normalizationFactorSquared = normalizationFactor * normalizationFactor; // Square for dB conversion
 
     // Get magnitudes and convert to dB
@@ -407,11 +406,9 @@ void SimpleGainSliderAudioProcessor::updateDelayBufferWritePosition(int bufferSi
 float SimpleGainSliderAudioProcessor::cubicHermiteInterpolate(float y0, float y1, float y2, float y3, float fractionalPosition) // Interpolate between y1 and y2
 {   
     // Audio optimised formula based off of: https://github.com/kmatheussen/radium/blob/master/audio/SampleInterpolator.cpp
-    // written by Kjetil Matheussen
+    // Written by Kjetil Matheussen
     
-
     // Calculates a windowed cubic spline interpolation, using custom coefficients instead of Hermite basis functions.
-    // This priorities speed over mathmatical accuracy (unlike like windowed sinc)
 
 	// Half-weight the outer points to reduce pull of distant samples
     float half_y0 = 0.5f * y0;
@@ -421,7 +418,7 @@ float SimpleGainSliderAudioProcessor::cubicHermiteInterpolate(float y0, float y1
     float slope_y1_to_y2 = (0.5f * y2) - half_y0;
 
     // Calculate the curvature components
-	float curvature_term1 = (y0 + (2.0f * y2)) - (half_y3 + (2.5f * y1));       // dampens y1
+	float curvature_term1 = (y0 + (2.0f * y2)) - (half_y3 + (2.5f * y1));       // Dampens y1
 	float curvature_term2 = (half_y3 + (1.5f * y1)) - ((1.5f * y2) + half_y0); // Flatten curve at y2 to prevent overshoot 
 
     // Combine all components using Horner's method for efficiency

@@ -11,7 +11,7 @@
 #include <regex>
 
 //==============================================================================
-// Constructor: Caled when window is created
+// Constructor called when window is created
 SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (SimpleGainSliderAudioProcessor& p)
 	: AudioProcessorEditor (&p), audioProcessor (p),
 	spectrumAnalyser(p) // Create spectrum analyser component
@@ -31,7 +31,7 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	compressorThresholdAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, THRESHOLD_ID, thresholdSlider);
 	compressorRatioAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(audioProcessor.treeState, RATIO_ID, ratioSlider);
 
-
+	// Make content dividers visible
 	addAndMakeVisible(header);
 	addAndMakeVisible(contentInGain);
 	addAndMakeVisible(contentOutGain);
@@ -39,11 +39,12 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	addAndMakeVisible(contentSpectrum);
 	addAndMakeVisible(contentCompressor);
 	
-	// Set outline colours
+	// Set all outline colours
 	contentInGain.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 	contentOutGain.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 	contentDelay.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 	contentCompressor.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
+	header.setColour(juce::GroupComponent::outlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 
 	inGainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 	outGainSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
@@ -54,6 +55,22 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	thresholdSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 	ratioSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::lightblue.withAlpha(0.5f));
 
+	// Header Label
+
+	headerLabel1.setText("Multi-effect VST Plugin", juce::dontSendNotification);
+	headerLabel2.setText("By Zakariya Khan", juce::dontSendNotification);
+
+	headerLabel1.setJustificationType(juce::Justification::centredLeft);
+	headerLabel2.setJustificationType(juce::Justification::centredRight);
+
+	headerLabel1.setColour(juce::Label::textColourId, juce::Colours::lightblue);
+	headerLabel2.setColour(juce::Label::textColourId, juce::Colours::lightblue);
+
+	headerLabel1.setFont(juce::Font(16.0f, juce::Font::bold));
+	headerLabel2.setFont(juce::Font(16.0f, juce::Font::bold));
+
+	header.addAndMakeVisible(headerLabel1);
+	header.addAndMakeVisible(headerLabel2);
 	// === gainSlider Properties ===
 	
 		// Slider settings
@@ -120,12 +137,13 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	ratioSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
 	ratioSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 	ratioSlider.setRange(0.0, ratioChoices.size() - 1.0, 1.0);
+	ratioSlider.setTooltip("Controls the amount of gain reduction applied to the signal above threshold. Higher ratios result in more compressed dynamics.");
 
 	// Labels
 	configureKnobLabel(ratioLabel, "Ratio");
 
 	ratioValueLabel.setJustificationType(juce::Justification::centred);
-	ratioSlider.onValueChange = [this, ratioChoices]() // Capture needed variables (this for label, ratioChoices)
+	ratioSlider.onValueChange = [this, ratioChoices]()					// Updates ratio value label
 		{
 			int index = static_cast<int>(std::round(ratioSlider.getValue()));	// In case of fp error
 
@@ -138,12 +156,12 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 			ratioValueLabel.setText(choiceText + ":1", juce::dontSendNotification);
 		};
 
-
 	// -- Threshold --
 
 	thresholdSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
 	thresholdSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 	thresholdSlider.setRange(-60.0f, 12.0f);
+	thresholdSlider.setTooltip("The compressor will start to apply gain reduction to audio above this level.");
 
 	configureKnobLabel(thresholdLabel, "Threshold");
 	thresholdValueLabel.setEditable(false, true, false);
@@ -159,6 +177,7 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	attackSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
 	attackSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 	attackSlider.setRange(5.0f, 500.0f);
+	attackSlider.setTooltip("Controls how quickly gain reduction is applied to audio above the threshold. Slow attack time increases delay before compression is fully applied.");
 
 	configureKnobLabel(attackLabel, "Attack");
 	attackValueLabel.setEditable(false, true, false);
@@ -174,6 +193,7 @@ SimpleGainSliderAudioProcessorEditor::SimpleGainSliderAudioProcessorEditor (Simp
 	releaseSlider.setSliderStyle(juce::Slider::SliderStyle::RotaryHorizontalDrag);
 	releaseSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
 	releaseSlider.setRange(5.0f, 500.0f);
+	releaseSlider.setTooltip("Controls how quickly gain reduction is released after the audio falls below the threshold. Slow release time increases delay before compression is fully released.");
 
 	configureKnobLabel(releaseLabel, "Release");
 	releaseValueLabel.setEditable(false, true, false);
@@ -220,7 +240,7 @@ SimpleGainSliderAudioProcessorEditor::~SimpleGainSliderAudioProcessorEditor()
 // What to happen within the window
 void SimpleGainSliderAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
+    
 	g.fillAll(juce::Colour::fromString("FF560573"));
     g.setColour (juce::Colours::white);
     g.setFont (juce::FontOptions (15.0f));
@@ -232,7 +252,7 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 {
 	// Set bounds for header, footer, sidebar and contentDelay
 	auto area = getLocalBounds();
-	auto headerHeight = 40;
+	auto headerHeight = 45;
 	auto footerHeight = 30;
 	header.setBounds(area.removeFromTop(headerHeight));
 
@@ -370,10 +390,29 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 		juce::GridItem(releaseSlider).withArea(4, 3, 6, 3)  // Rows 4-5, Col 3
 	};
 
-
 	compGrid.performLayout(contentCompressor.getLocalBounds().reduced(5)); // Set bounds for compressor grid
+
+
+	// === Header ===
+
+	juce::Grid headerGrid;
+	headerGrid.alignItems = juce::Grid::AlignItems::center;
+	headerGrid.justifyItems = juce::Grid::JustifyItems::center;
+	headerGrid.templateRows = {
+		juce::Grid::TrackInfo(juce::Grid::Fr(1)),  // Title row
+	};
+	headerGrid.templateColumns = {
+		juce::Grid::Fr(1),	// Left side
+		juce::Grid::Fr(1)	// Right side
+	};
+	headerGrid.items = {
+		juce::GridItem(headerLabel1).withArea(1, 1), // Row 1, Col 1
+		juce::GridItem(headerLabel2).withArea(1, 2) // Row 1, Col 2
+	};
+	headerGrid.performLayout(header.getLocalBounds().reduced(5)); // Set bounds for header grid
 }	
 
+// React to changes in compressor sliders to allow for UI updates
 void SimpleGainSliderAudioProcessorEditor::labelTextChanged(juce::Label* labelChanged)
 {
 	// Find label edited
@@ -442,6 +481,7 @@ void SimpleGainSliderAudioProcessorEditor::labelTextChanged(juce::Label* labelCh
 
 }
 
+// Configure the gain slider properties
 void SimpleGainSliderAudioProcessorEditor::configureGainSlider(juce::Slider& slider, const juce::String& tooltip)
 {
 	slider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);
