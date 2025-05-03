@@ -1,11 +1,3 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin editor.
-    Frontend - aesthetics, how values change
-  ==============================================================================
-*/
-
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 #include <regex>
@@ -237,7 +229,7 @@ SimpleGainSliderAudioProcessorEditor::~SimpleGainSliderAudioProcessorEditor()
 }
 
 //==============================================================================
-// What to happen within the window
+// Init background colour
 void SimpleGainSliderAudioProcessorEditor::paint (juce::Graphics& g)
 {
     
@@ -247,7 +239,7 @@ void SimpleGainSliderAudioProcessorEditor::paint (juce::Graphics& g)
 
 }
 
-
+// Component positioning and sizing
 void SimpleGainSliderAudioProcessorEditor::resized()  //
 {
 	// Set bounds for header, footer, sidebar and contentDelay
@@ -267,7 +259,6 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 	contentSpectrum.setBounds(area.removeFromBottom(contentSpaceHeight/2));
 	contentDelay.setBounds(area.removeFromLeft(contentSpaceWidth / 2));
 	contentCompressor.setBounds(area);
-	
 	
 	// ==== GAIN UI ====
 
@@ -318,26 +309,26 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 		juce::Grid::Fr(1)	// Time slider
     };
 
-    delayGrid.items = {
-        juce::GridItem(delaySectionLabel).withArea(1, 1, 1, 3),
+    delayGrid.items = { 
+        juce::GridItem(delaySectionLabel).withArea(1, 1, 1, 3),	// Top, right, bottom, left
 
-		juce::GridItem(delayFeedbackLabel).withArea(2, 1).withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
+		juce::GridItem(delayFeedbackLabel).withArea(2, 1).withMargin({0,0,10,0}),	
 	
         juce::GridItem(delayFeedbackSlider)
 			.withArea(3, 1)
 			.withMargin({0,0,10,0}),
 
-		juce::GridItem(delayTimeLabel).withArea(2, 2).withMargin({0,0,10,0}),	// Top, Right, Bottom, Left
+		juce::GridItem(delayTimeLabel).withArea(2, 2).withMargin({0,0,10,0}),	
 
 		juce::GridItem(delayTimeSlider)
 		.withArea(3, 2)	
-		.withMargin({0,0,10,0})	// Top, Right, Bottom, Left
+		.withMargin({0,0,10,0})	
     };
 	
     delayGrid.performLayout(contentDelay.getLocalBounds().reduced(5));
 
 	// ==== SPECTRUM UI ====
-	spectrumAnalyser.setBounds(contentSpectrum.getLocalBounds().reduced(5)); // Set bounds for spectrum analyser
+	spectrumAnalyser.setBounds(contentSpectrum.getLocalBounds().reduced(5));
 
 	// ==== COMPRESSOR UI ====
 
@@ -390,7 +381,7 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 		juce::GridItem(releaseSlider).withArea(4, 3, 6, 3)  // Rows 4-5, Col 3
 	};
 
-	compGrid.performLayout(contentCompressor.getLocalBounds().reduced(5)); // Set bounds for compressor grid
+	compGrid.performLayout(contentCompressor.getLocalBounds().reduced(5));
 
 
 	// === Header ===
@@ -409,10 +400,10 @@ void SimpleGainSliderAudioProcessorEditor::resized()  //
 		juce::GridItem(headerLabel1).withArea(1, 1), // Row 1, Col 1
 		juce::GridItem(headerLabel2).withArea(1, 2) // Row 1, Col 2
 	};
-	headerGrid.performLayout(header.getLocalBounds().reduced(5)); // Set bounds for header grid
+	headerGrid.performLayout(header.getLocalBounds().reduced(5));
 }	
 
-// React to changes in compressor sliders to allow for UI updates
+// Reacts to changes in compressor sliders to update UI 
 void SimpleGainSliderAudioProcessorEditor::labelTextChanged(juce::Label* labelChanged)
 {
 	// Find label edited
@@ -481,7 +472,7 @@ void SimpleGainSliderAudioProcessorEditor::labelTextChanged(juce::Label* labelCh
 
 }
 
-// Configure the gain slider properties
+// Set default gain slider properties
 void SimpleGainSliderAudioProcessorEditor::configureGainSlider(juce::Slider& slider, const juce::String& tooltip)
 {
 	slider.setSliderStyle(juce::Slider::SliderStyle::LinearVertical);

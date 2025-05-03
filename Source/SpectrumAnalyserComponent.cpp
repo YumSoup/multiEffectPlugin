@@ -41,17 +41,16 @@ void SpectrumAnalyserComponent::timerCallback()
                 fftSmoothedData[i] = (smoothingFactor * fftDisplayData[i]) + ((1.0f - smoothingFactor) * fftSmoothedData[i]);
             }
         }
-
         repaint(); // Redraw UI
     }
 }
 
 void SpectrumAnalyserComponent::paint(juce::Graphics& g)
 {
-	g.fillAll(juce::Colours::black); // Background color
+	g.fillAll(juce::Colours::black); // Background colour
     
     // Component bounds
-    auto bounds = getLocalBounds().toFloat().reduced(10.0f); // Padding
+    auto bounds = getLocalBounds().toFloat().reduced(10.0f); 
     auto width = bounds.getWidth();
     auto height = bounds.getHeight();
     auto left = bounds.getX();
@@ -115,7 +114,6 @@ void SpectrumAnalyserComponent::paint(juce::Graphics& g)
 		{
 			spectrumPath.lineTo(x, y); // Path to x,y
 		}
-
     }
 
 	// Draw path
@@ -131,7 +129,7 @@ void SpectrumAnalyserComponent::paint(juce::Graphics& g)
 	g.drawText("dB", left - 30, top, 20, height, juce::Justification::centred); // dB label
 	g.drawText("Freq", right - 50, bottom + 10, 50, 20, juce::Justification::centred); // Freq label
 
-    // === GUIDELINES ===
+    // === Frequency Lines ===
 
     juce::Font labelFont(10.0f); // Small font for labels
     g.setFont(labelFont);
@@ -144,12 +142,12 @@ void SpectrumAnalyserComponent::paint(juce::Graphics& g)
         1000.0f, 2000.0f, 5000.0f, 10000.0f, 20000.0f
     };
 
-    // Helper lambda to format frequency labels nicely (e.g., 1k, 2k)
+    // Lambda func to format frequency labels
     auto formatFrequencyLabel = [](float freq) -> juce::String {
         if (freq >= 1000.0f)
-            return juce::String(freq / 1000.0f, 1) + "k"; // e.g., "1.0k", "5.5k"
+			return juce::String(freq / 1000.0f, 1) + "k"; // Add "k" for kHz
         else
-            return juce::String(static_cast<int>(freq));   // e.g., "30", "100"
+            return juce::String(static_cast<int>(freq)); 
         };
 
 	// For EACH FREQ:
@@ -157,15 +155,15 @@ void SpectrumAnalyserComponent::paint(juce::Graphics& g)
     {
         if (freq >= minFreq && freq <= maxFreq)
         {
-            // --- Calculate X position using the same log mapping ---
+            // Calc X position using the same log mapping
             float logFreq = std::log(freq);
             float normalisedX = (logFreq - logMinFreq) / logFreqRange;
             float x = left + width * normalisedX;
 
-            // --- Draw Vertical Line ---
+            // Draw vertical line
             g.drawVerticalLine(juce::roundToInt(x), top, bottom);
 
-            // --- Draw Label ---
+            // Draw Label
             juce::String label = formatFrequencyLabel(freq);
             int textWidth = labelFont.getStringWidth(label);
             int textHeight = labelFont.getHeight();
@@ -177,7 +175,7 @@ void SpectrumAnalyserComponent::paint(juce::Graphics& g)
                 textWidth,
                 textHeight);
 
-            // Set label colour (slightly brighter than line)
+            // Set label colour
             g.setColour(juce::Colours::white.withAlpha(0.6f));
             g.drawText(label, labelBounds, juce::Justification::centred, 1);
         }
@@ -185,6 +183,8 @@ void SpectrumAnalyserComponent::paint(juce::Graphics& g)
 
 	g.setColour(juce::Colours::white.withAlpha(0.3f));  // Colour for dB lines
 
+	// === Draw dB lines ===
+    
     // -72dB line
     float y72 = bottom - height * juce::jmap(-72.0f, minDb, maxDb, 0.0f, 1.0f);
     g.drawHorizontalLine(juce::roundToInt(y72), left, right);
@@ -213,9 +213,6 @@ void SpectrumAnalyserComponent::paint(juce::Graphics& g)
 }
 
 
-
 void SpectrumAnalyserComponent::resized()
 {
-    // Typically empty for this basic approach, but you could calculate
-    // bounds or reusable drawing objects here if needed later.
 }

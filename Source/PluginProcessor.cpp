@@ -369,7 +369,6 @@ void SimpleGainSliderAudioProcessor::performFFTProcessing() {
         float magSquared = real * real + imag * imag;  // Get magnitude^2 of current freq bin
 		float normalisedMagSquared = magSquared / normalizationFactorSquared; // Normalise magnitude^2
         
-
 		//  Convert to dB
         float dBValue;
         if (magSquared > 1e-10f) {
@@ -398,8 +397,8 @@ int SimpleGainSliderAudioProcessor::getFftSize() const { return fftSize; }
 // Increment delay buffer write position by buffersize
 void SimpleGainSliderAudioProcessor::updateDelayBufferWritePosition(int bufferSize) {
 	int delayBufferSize = delayBuffer.getNumSamples();
-    writePosition += bufferSize; //increment writePosition
-	writePosition %= delayBufferSize; //wrap around
+    writePosition += bufferSize; // Increment writePosition
+	writePosition %= delayBufferSize; // Wrap around
 }
 
 // Cubic Hermite Interpolation function

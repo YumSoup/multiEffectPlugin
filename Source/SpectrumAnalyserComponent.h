@@ -5,13 +5,13 @@
 #include <juce_core/juce_core.h>
 
 #include <vector>
-#include "PluginProcessor.h" // Your processor header
+#include "PluginProcessor.h" 
 
 
 //==============================================================================
 class SpectrumAnalyserComponent : 
     public juce::Component,
-    private juce::Timer, // Inherit from Timer to periodically update
+    private juce::Timer, // Timer to periodically update
     public juce::SettableTooltipClient
 {
 public:
@@ -20,7 +20,7 @@ public:
 
     ~SpectrumAnalyserComponent() override;
 
-    // Essential juce::Component overrides
+    // juce::Component overrides
     void paint(juce::Graphics& g) override;
     void resized() override;
 
