@@ -20,7 +20,7 @@ SimpleGainSliderAudioProcessor::SimpleGainSliderAudioProcessor():
 
     // Initialisation list:
 
-    treeState(*this, nullptr, "PARAMETERS", createParameterLayout()),  //construct treeState with parameter list
+    treeState(*this, nullptr, "PARAMETERS", createParameterLayout()),  // Construct treeState with parameter list
 
 	forwardFFT(fftOrder),   // Init forwardFFT with size of window
   
@@ -298,7 +298,8 @@ void SimpleGainSliderAudioProcessor::parameterChanged(const juce::String& parame
     if (parameterID == ATTACK_ID)
     {
         if (attackParamPtr)
-            compressor.setAttack(attackParamPtr->get());
+            compressor.setAttack(attackParamPtr->get() * 100);
+		
         
     }
     else if (parameterID == RELEASE_ID)
@@ -391,7 +392,7 @@ void SimpleGainSliderAudioProcessor::performFFTProcessing() {
 
 }
 
-// fftSide get function
+// fftSize get function
 int SimpleGainSliderAudioProcessor::getFftSize() const { return fftSize; }
 
 // Increment delay buffer write position by buffersize

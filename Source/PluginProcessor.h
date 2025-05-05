@@ -1,13 +1,3 @@
-/*
-  ==============================================================================
-    This file contains the basic framework code for a JUCE plugin processor.
-
-    .h holds variables
-    Algorithmns and math processing goes here
-    
-  ==============================================================================
-*/
-
 #pragma once
 #include <JuceHeader.h>
 #include <juce_dsp/juce_dsp.h>
@@ -40,21 +30,19 @@
 /**
 */
 
-// StateStorage class template for thread-safe storage of state variables
+// StateStorage class for thread-safe storage of variables
 template <typename T>
 class StateStorage
 {
 public:
     // Constructor
     StateStorage(T initialValue = T{}) : value(initialValue) {}
-
-    // Set 
+    
     void set(T newValue)
     {
         value.store(newValue); 
     }
 
-    // Get 
     T get() const
     {
         return value.load(); 
@@ -110,7 +98,7 @@ public:
 
     int getFftSize() const;
 
-    juce::AudioProcessorValueTreeState treeState; //declare a treeState the processor should have
+    juce::AudioProcessorValueTreeState treeState; // Declare processor's APVTS
     
     static const juce::StringArray getRatioChoices() {
         static const juce::StringArray choices{ "1", "1.5", "2", "3", "4", "5", "10", "100" };
@@ -140,15 +128,15 @@ private:
 	// == Parameters ==
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
-    juce::AudioParameterFloat* attackParamPtr{ nullptr };   //compressor
+    juce::AudioParameterFloat* attackParamPtr{ nullptr };   // Compressor
     juce::AudioParameterFloat* releaseParamPtr{ nullptr };
     juce::AudioParameterFloat* thresholdParamPtr{ nullptr };
     juce::AudioParameterChoice* ratioParamPtr{ nullptr };
 
-	juce::AudioParameterFloat* inGainParamPtr{ nullptr };   //gain
+	juce::AudioParameterFloat* inGainParamPtr{ nullptr };   // Gain
 	juce::AudioParameterFloat* outGainParamPtr{ nullptr };
 
-	juce::AudioParameterFloat* delayFeedbackParamPtr{ nullptr };    //delay
+	juce::AudioParameterFloat* delayFeedbackParamPtr{ nullptr };    // Delay
 	juce::AudioParameterFloat* delayTimeParamPtr{ nullptr };
 
 	// === Gain ===

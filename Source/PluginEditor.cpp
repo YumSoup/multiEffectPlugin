@@ -240,9 +240,9 @@ void SimpleGainSliderAudioProcessorEditor::paint (juce::Graphics& g)
 }
 
 // Component positioning and sizing
-void SimpleGainSliderAudioProcessorEditor::resized()  //
+void SimpleGainSliderAudioProcessorEditor::resized()  
 {
-	// Set bounds for header, footer, sidebar and contentDelay
+	// Set bounds for content sections
 	auto area = getLocalBounds();
 	auto headerHeight = 45;
 	auto footerHeight = 30;
@@ -430,8 +430,8 @@ void SimpleGainSliderAudioProcessorEditor::labelTextChanged(juce::Label* labelCh
 		return;
 	}
 
-	// --- Get the parameter and the entered text ---
-	auto* parameterBase = audioProcessor.treeState.getParameter(paramID);
+	// === Parsing === 
+	auto* parameterBase = audioProcessor.treeState.getParameter(paramID);	// Get parameter being changed
 	juce::String newText = labelChanged->getText(); // Raw user input
 
 	auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(parameterBase);

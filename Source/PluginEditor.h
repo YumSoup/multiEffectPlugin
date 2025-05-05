@@ -1,12 +1,3 @@
-/*
-  ==============================================================================
-    This file contains the basic framework code for a JUCE plugin editor.
-
-    .h holds variables
-    Frontend - aesthetics, how values change
-  ==============================================================================
-*/
-
 #pragma once
 
 #include <JuceHeader.h>
@@ -32,8 +23,6 @@ public:
     
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
     SimpleGainSliderAudioProcessor& audioProcessor;
 
     juce::TooltipWindow tooltipWindow{ this, 700 };
