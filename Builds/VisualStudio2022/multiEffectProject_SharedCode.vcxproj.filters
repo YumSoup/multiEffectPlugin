@@ -3658,12 +3658,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\Source\PluginProcessor.h">
-      <Filter>multiEffectProject</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\Source\SpectrumAnalyserComponent.h">
       <Filter>multiEffectProject\Source</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Source\StateVariableFilter.h">
+    <ClInclude Include="..\..\Source\SpectrumAnalyserComponent.h">
       <Filter>multiEffectProject\Source</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Source\PluginEditor.h">

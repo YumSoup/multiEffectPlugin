@@ -4,15 +4,13 @@
               useAppConfig="0" addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1"
               pluginManufacturer="ZK" pluginName="multiEffectPlugin">
   <MAINGROUP id="Y7GsHK" name="multiEffectProject">
-    <FILE id="vRHif9" name="PluginProcessor.h" compile="0" resource="0"
-          file="Source/PluginProcessor.h"/>
     <GROUP id="{27DD81DA-06BA-24A4-58B5-C70488D1CBA1}" name="Source">
+      <FILE id="vRHif9" name="PluginProcessor.h" compile="0" resource="0"
+            file="Source/PluginProcessor.h"/>
       <FILE id="F6GdIj" name="SpectrumAnalyserComponent.h" compile="0" resource="0"
             file="Source/SpectrumAnalyserComponent.h"/>
       <FILE id="Mcr86G" name="SpectrumAnalyserComponent.cpp" compile="1"
             resource="0" file="Source/SpectrumAnalyserComponent.cpp"/>
-      <FILE id="dk7hhe" name="StateVariableFilter.h" compile="0" resource="0"
-            file="Source/StateVariableFilter.h"/>
       <FILE id="ysqN9q" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="GRDvCO" name="PluginEditor.cpp" compile="1" resource="0"
